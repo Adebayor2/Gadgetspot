@@ -1,0 +1,36 @@
+{
+  "dependencies": {
+    "@getbrevo/brevo": "^6.0.2",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
+    "cookie": "^1.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^8.5.2",
+    "express-validator": "^7.3.2",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^14.2.0",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.7.1",
+    "multer": "^2.2.0",
+    "multer-storage-cloudinary": "^2.2.1",
+    "nigerian-states-and-lgas": "^1.0.8",
+    "parser": "^0.1.4",
+    "resend": "^6.16.0",
+    "socket.io": "^4.8.3",
+    "xss-clean": "^0.1.4"
+  },
+  "allowScripts": {
+    "bcrypt@6.0.0": true,
+    "@firebase/util@1.15.1": true,
+    "protobufjs@7.6.4": true
+  },
+  "devDependencies": {
+    "axios": "^1.18.1",
+    "nodemon": "^3.1.14"
+  }
+}
