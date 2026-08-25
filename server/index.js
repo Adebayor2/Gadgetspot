@@ -32,7 +32,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 }
 
 app.use(helmet())
-app.use(cors({ origin: CLIENT_URL, credentials: true }))
+app.use(cors({ origin: CLIENT_URL|| 'http://localhots:5173' , credentials: true }))
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }))
 
