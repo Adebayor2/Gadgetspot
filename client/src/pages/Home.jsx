@@ -13,8 +13,8 @@ import samsungLogo from '../assets/images/Samsung-logo.jpg'
 import newAgeLogo from '../assets/images/NewAge-logo.jfif'
 import oriamoLogo from '../assets/images/Oriamo-logo.png'
 import tecnoLogo from '../assets/images/Tecno-logo.jfif'
-import jblLogo from '../assets/images/Jbl-Logo.png'
-import lgLogo from '../assets/images/LG-logo.png'
+import jblLogo from '../assets/images/JBL-Logo.png'
+import lgLogo from '../assets/images/Lg-logo.png'
 import HisenseLogo from '../assets/images/Hisense-Logo.png'
 
 
