@@ -30,9 +30,14 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     credential: admin.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
   })
 }
+const allowedOrigins = [
+  CLIENT_URL,
+ 'https://gadgetspot-tau.vercel.app',
+ 'http://localhots:5173'
+]
 
 app.use(helmet())
-app.use(cors({ origin: CLIENT_URL|| 'https://gadgetspot-tau.vercel.app' || 'http://localhots:5173' , credentials: true }))
+app.use(cors({ origin: allowedOrigins, credentials: true }))
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }))
 
