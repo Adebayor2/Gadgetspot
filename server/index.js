@@ -31,13 +31,25 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   })
 }
 const allowedOrigins = [
- 'https://gadgetspot.com.ng',
  'https://gadgetspot-tau.vercel.app',
  'http://localhost:5173'
 ]
 
+if (CLIENT_URL) {
+  allowedOrigins.push(CLIENT_URL)
+}
+
 app.use(helmet())
-app.use(cors({ origin: allowedOrigins, credentials: true }))
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true
+}))
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }))
 
