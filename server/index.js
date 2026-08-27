@@ -31,9 +31,9 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   })
 }
 const allowedOrigins = [
-  CLIENT_URL,
+ 'https://gadgetspot.com.ng',
  'https://gadgetspot-tau.vercel.app',
- 'http://localhots:5173'
+ 'http://localhost:5173'
 ]
 
 app.use(helmet())
