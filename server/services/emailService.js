@@ -19,15 +19,29 @@ transporter.verify((error) => {
   }
 });
 
+const formatFrom = (email, name) => {
+  const senderName = name || process.env.EMAIL_FROM_NAME || 'GadgetSpot';
+  return `"${senderName}" <${email}>`;
+};
+
+const formatReplyTo = (email, name) => {
+  if (name) {
+    return `"${name}" <${email}>`;
+  }
+  return email;
+};
 
 
 async function sendWelcomeEmail(to, name) {
+  if (!to) {
+    return { success: false, error: 'sendWelcomeEmail: "to" is required' };
+  }
   try {
     const response = await transporter.sendMail({
-      from: { email:'hello@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
-      to: [{ email: to, name: name }],
-      subject: `Welcome to GadgetSpot, ${name}!`,
-      htmlContent: `
+      from: formatFrom('hello@gadgetspot.com.ng'),
+      to: [{ email: to, name: name || '' }],
+      subject: `Welcome to GadgetSpot, ${name || 'there'}!`,
+      html: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -36,7 +50,7 @@ async function sendWelcomeEmail(to, name) {
                 <p style="margin:8px 0 0;color:#fefefe;font-size:15px;">Your next favorite gadget experience starts here.</p>
               </div>
               <div style="padding:28px 24px;color:#244a66;">
-                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name},</h2>
+                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name || 'there'},</h2>
                 <p style="margin:0 0 16px;line-height:1.6;font-size:15px;">
                   Thanks for creating your GadgetSpot account. You're all set to explore premium gadgets, enjoy a smooth shopping experience, and discover amazing deals.
                 </p>
@@ -65,15 +79,15 @@ async function sendWelcomeEmail(to, name) {
 }
 
 async function sendVerificationEmail(to, name, link) {
-    if (!to || !name || !link) {
-    return { success: false, error: 'sendVerificationEmail: "to", "name", and "link" are required' };
+  if (!to || !link) {
+    return { success: false, error: 'sendVerificationEmail: "to" and "link" are required' };
   }
   try {
     const response = await transporter.sendMail({
-      from: { email: 'noreply@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
-      to: [{ email: to, name: name }],
+      from: formatFrom('noreply@gadgetspot.com.ng'),
+      to: [{ email: to, name: name || '' }],
       subject: 'Verify your email',
-      htmlContent: `
+      html: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -81,7 +95,7 @@ async function sendVerificationEmail(to, name, link) {
                 <h1 style="margin:0;color:#ffffff;font-size:28px;">Verify Your Email</h1>
               </div>
               <div style="padding:28px 24px;color:#244a66;">
-                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name},</h2>
+                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name || 'there'},</h2>
                 <p style="margin:0 0 16px;line-height:1.6;font-size:15px;">
                   Please confirm your email address to finish setting up your account and secure your GadgetSpot profile.
                 </p>
@@ -106,22 +120,21 @@ async function sendVerificationEmail(to, name, link) {
 
     return { success: true, data: response };
   } catch (error) {
-    console.log('Verification email failed:', error.message || error);
+    console.error('Verification email failed:', error.message || error);
     return { success: false, error: error.message || 'Unknown email error' };
   }
 }
 
 async function sendPasswordResetEmail(to, name, link) {
-  
-  if (!to || !name || !link) {
-    return { success: false, error: 'sendPasswordResetEmail: "to", "name", and "link" are required' };
+  if (!to || !link) {
+    return { success: false, error: 'sendPasswordResetEmail: "to" and "link" are required' };
   }
   try {
     const response = await transporter.sendMail({
-      from: { email: 'noreply@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
-      to: [{ email: to, name: name }],
+      from: formatFrom('noreply@gadgetspot.com.ng'),
+      to: [{ email: to, name: name || '' }],
       subject: 'Reset your password',
-      htmlContent: `
+      html: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -129,7 +142,7 @@ async function sendPasswordResetEmail(to, name, link) {
                 <h1 style="margin:0;color:#ffffff;font-size:28px;">Reset Your Password</h1>
               </div>
               <div style="padding:28px 24px;color:#244a66;">
-                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name},</h2>
+                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name || 'there'},</h2>
                 <p style="margin:0 0 16px;line-height:1.6;font-size:15px;">
                   We received a request to reset your password. Click the button below to create a new one.
                 </p>
@@ -159,7 +172,7 @@ async function sendPasswordResetEmail(to, name, link) {
   }
 }
 
-const SUPPORT_EMAIL =  'support@gadgetspot.com.ng';
+const SUPPORT_EMAIL = 'support@gadgetspot.com.ng';
 
 async function sendContactEmail({ name, email, subject, message }) {
   if (!name || !email || !subject || !message) {
@@ -168,11 +181,11 @@ async function sendContactEmail({ name, email, subject, message }) {
 
   try {
     const response = await transporter.sendMail({
-      from: { email: 'noreply@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
+      from: formatFrom('hello@gadgetspot.com.ng'),
       to: [{ email: SUPPORT_EMAIL }],
-      replyTo: { email: email, name: name },
+      replyTo: formatReplyTo(email, name),
       subject: `Contact: ${subject}`,
-      htmlContent: `
+      html: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -200,9 +213,8 @@ async function sendContactEmail({ name, email, subject, message }) {
 }
 
 async function sendOrderConfirmationEmail({ to, name, order }) {
- 
-  if (!to || !name || !order) {
-    return { success: false, error: 'sendOrderConfirmationEmail: "to", "name", and "order" are required' };
+  if (!to || !order) {
+    return { success: false, error: 'sendOrderConfirmationEmail: "to" and "order" are required' };
   }
 
   const itemsHtml = (order.items || [])
@@ -219,12 +231,15 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
     )
     .join('');
 
+  const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
+  const formattedDate = createdAt.toLocaleString();
+
   try {
     const response = await transporter.sendMail({
-      from: { email: 'order@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
-      to: [{ email: to, name: name }],
+      from: formatFrom('order@gadgetspot.com.ng'),
+      to: [{ email: to, name: name || '' }],
       subject: `Order Confirmation - ${order.reference || 'GadgetSpot'}`,
-      htmlContent: `
+      html: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -233,7 +248,7 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
                 <p style="margin:8px 0 0;color:#fefefe;font-size:15px;">Thank you for shopping with GadgetSpot.</p>
               </div>
               <div style="padding:28px 24px;color:#244a66;">
-                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name},</h2>
+                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name || 'there'},</h2>
                 <p style="margin:0 0 16px;line-height:1.6;font-size:15px;">
                   Your order has been received and is being processed. Here are your order details:
                 </p>
@@ -241,7 +256,7 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
                 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px;">
                   <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Order Reference:</strong> ${order.reference || '—'}</p>
                   <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Status:</strong> <span style="text-transform:capitalize;">${order.status || 'paid'}</span></p>
-                  <p style="margin:0;font-size:14px;color:#475569;"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+                  <p style="margin:0;font-size:14px;color:#475569;"><strong>Date:</strong> ${formattedDate}</p>
                 </div>
 
                 <h3 style="margin:0 0 12px;font-size:16px;color:#0f4c81;">Order Summary</h3>
@@ -304,8 +319,8 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
 }
 
 async function sendOrderStatusUpdateEmail({ to, name, order }) {
-  if (!to || !name || !order) {
-    return { success: false, error: 'sendOrderStatusUpdateEmail: "to", "name", and "order" are required' };
+  if (!to || !order) {
+    return { success: false, error: 'sendOrderStatusUpdateEmail: "to" and "order" are required' };
   }
   const statusLabel = String(order.status || '').charAt(0).toUpperCase() + String(order.status || '').slice(1);
 
@@ -323,12 +338,15 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
     )
     .join('');
 
+  const createdAt = order.createdAt ? new Date(order.createdAt) : new Date();
+  const formattedDate = createdAt.toLocaleString();
+
   try {
-    const response = await transporter.sendMail ({
-      from: { email: 'order@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
-      to: [{ email: to, name: name }],
+    const response = await transporter.sendMail({
+      from: formatFrom('order@gadgetspot.com.ng'),
+      to: [{ email: to, name: name || '' }],
       subject: `Order Status Updated - ${order.reference || 'GadgetSpot'}`,
-      htmlContent: `
+      html: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -337,7 +355,7 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
                 <p style="margin:8px 0 0;color:#fefefe;font-size:15px;">Your order status has been changed to <strong>${statusLabel}</strong></p>
               </div>
               <div style="padding:28px 24px;color:#244a66;">
-                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name},</h2>
+                <h2 style="margin:0 0 12px;font-size:24px;color:#0f4c81;">Hi ${name || 'there'},</h2>
                 <p style="margin:0 0 16px;line-height:1.6;font-size:15px;">
                   We wanted to let you know that your order status has been updated. Here are the details:
                 </p>
@@ -345,7 +363,7 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
                 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px;">
                   <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Order Reference:</strong> ${order.reference || '—'}</p>
                   <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>New Status:</strong> <span style="text-transform:capitalize;font-weight:bold;">${statusLabel}</span></p>
-                  <p style="margin:0;font-size:14px;color:#475569;"><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+                  <p style="margin:0;font-size:14px;color:#475569;"><strong>Date:</strong> ${formattedDate}</p>
                 </div>
 
                 <h3 style="margin:0 0 12px;font-size:16px;color:#0f4c81;">Order Summary</h3>

@@ -190,7 +190,9 @@ const googleSignin = async (req, res) => {
                 email: normalizedEmail,
                 authProviders: 'google',
             });
-            await sendWelcomeEmail(normalizedEmail, name);
+            sendWelcomeEmail(normalizedEmail, name).catch((err) => {
+                console.error('Google sign-in welcome email failed:', err.message || err);
+            });
         }
 
         const accessToken = generateAccessToken(userFound);
@@ -534,7 +536,10 @@ const changeEmail = async (req, res) => {
         await user.save();
 
         const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${randomToken}`;
-        await sendVerificationEmail(normalizedNewEmail, user.fullName, verificationUrl);
+        const emailResult = await sendVerificationEmail(normalizedNewEmail, user.fullName, verificationUrl);
+        if (!emailResult.success) {
+            console.error('Change email verification send failed:', emailResult.error);
+        }
 
         res.status(200).json({
             success: true,
