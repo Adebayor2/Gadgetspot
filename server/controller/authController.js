@@ -271,8 +271,12 @@ const forgotPassword = async (req, res) => {
         userFound.resetPasswordTokenExpires = Date.now() + 15 * 60 * 1000 // 15 minutes
         await userFound.save()
         const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${randomToken}`
-        await sendPasswordResetEmail(resetEmail, resetName, resetUrl)
-        return res.status(200).json({ message: 'Reset mail sent Check your Email' })
+         const emailResult = await sendPasswordResetEmail(resetEmail, resetName, resetUrl)
+         if (!emailResult.success) {
+             console.log('Password reset email send failed:', emailResult.error)
+             return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' })
+         }
+         return res.status(200).json({ message: 'Reset mail sent Check your Email' })
     }
     catch (error) {
         res.status(500).json({ message: 'Error Sending Mail to user' })

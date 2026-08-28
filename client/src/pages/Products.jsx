@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Footer from '../components/Footer';
 import Navbar from '../components/Navbar';
@@ -16,14 +16,12 @@ const Products = () => {
   const [maxPrice, setMaxPrice] = useState(2000000);
   const [sortBy, setSortBy] = useState('Featured');
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
-  const [displayProducts, setDisplayProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
   const productsPerPage = 20;
 
   useEffect(() => {
@@ -40,10 +38,11 @@ const Products = () => {
           api.get('/categories'),
         ]);
         if (active) {
-          const allProducts = productsRes.data.products || [];
+          const products = productsRes.data.products || [];
           const cats = categoriesRes.data.categories || [];
+          setAllProducts(products);
           setCategories(['All', ...cats.map((c) => c.name)]);
-          const uniqueBrands = [...new Set(allProducts.map((p) => p.brand).filter(Boolean))];
+          const uniqueBrands = [...new Set(products.map((p) => p.brand).filter(Boolean))];
           setBrands(uniqueBrands.sort());
         }
       } catch (error) {
@@ -51,43 +50,68 @@ const Products = () => {
       } finally {
         if (active) {
           setCategoriesLoading(false);
+          setLoading(false);
         }
       }
     })();
     return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const params = {
-          page: currentPage,
-          limit: productsPerPage,
-          sort: sortBy === 'Featured' ? 'featured' : sortBy === 'PriceLowHigh' ? 'price_asc' : sortBy === 'PriceHighLow' ? 'price_desc' : sortBy === 'Rating' ? 'rating' : undefined,
-        };
-        if (searchQuery) params.search = searchQuery;
-        if (selectedCategories.length > 0) params.category = selectedCategories;
-        if (selectedBrands.length > 0) params.brand = selectedBrands;
-        if (maxPrice < 2000000) params.maxPrice = maxPrice;
+  const filteredProducts = useMemo(() => {
+    let result = [...allProducts];
 
-        const { data } = await api.get('/products', { params });
-        if (active) {
-          setDisplayProducts(data.products || []);
-          setTotalPages(data.totalPages || 1);
-          setTotalProducts(data.totalProducts || 0);
-        }
-      } catch (error) {
-        console.error('Failed to load products', error);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [searchQuery, selectedCategories, selectedBrands, maxPrice, sortBy, currentPage]);
+    if (selectedCategories.length > 0 && !selectedCategories.includes('All')) {
+      result = result.filter((p) => selectedCategories.includes(p.category));
+    }
+
+    if (selectedBrands.length > 0) {
+      result = result.filter((p) => selectedBrands.includes(p.brand));
+    }
+
+    if (maxPrice < 2000000) {
+      result = result.filter((p) => p.price <= maxPrice);
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.title?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q) ||
+          p.brand?.toLowerCase().includes(q)
+      );
+    }
+
+    if (sortBy === 'PriceLowHigh') {
+      result.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'PriceHighLow') {
+      result.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'Rating') {
+      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else {
+      result.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0) || (b.rating || 0) - (a.rating || 0));
+    }
+
+    return result;
+  }, [allProducts, selectedCategories, selectedBrands, maxPrice, searchQuery, sortBy]);
+
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+  const totalProducts = filteredProducts.length;
+
+  const displayProducts = useMemo(() => {
+    const start = (currentPage - 1) * productsPerPage;
+    return filteredProducts.slice(start, start + productsPerPage);
+  }, [filteredProducts, currentPage, productsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategories, selectedBrands, maxPrice, searchQuery, sortBy]);
 
   const handleCategoryToggle = (category) => {
+    if (category === 'All') {
+      setSelectedCategories([]);
+      return;
+    }
     setSelectedCategories((prev) =>
       prev.includes(category)
         ? prev.filter((c) => c !== category)
@@ -113,8 +137,8 @@ const Products = () => {
     setSearchParams({});
   };
 
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const indexOfLastProduct = Math.min(currentPage * productsPerPage, totalProducts);
+  const indexOfFirstProduct = totalProducts > 0 ? (currentPage - 1) * productsPerPage + 1 : 0;
 
   const renderFiltersContent = () => (
     <div className="space-y-8">
@@ -350,8 +374,8 @@ const Products = () => {
                     totalPages={totalPages}
                     onPageChange={setCurrentPage}
                     itemsRange={{
-                      start: indexOfFirstProduct + 1,
-                      end: Math.min(indexOfLastProduct, totalProducts),
+                      start: indexOfFirstProduct,
+                      end: indexOfLastProduct,
                     }}
                     totalItems={totalProducts}
                   />

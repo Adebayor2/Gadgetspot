@@ -1,21 +1,30 @@
-const { BrevoClient } = require('@getbrevo/brevo')
 
-const brevo = new BrevoClient({
-  apiKey: process.env.BREVO_API_KEY,
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  host: "smtp-relay.brevo.com",
+  port: 587,
+  secure: false,
+  auth: {
+    user: process.env.BREVO_SMTP_LOGIN,
+    pass: process.env.BREVO_SMTP_KEY,
+  },
 });
-const FROM = process.env.EMAIL_FROM_ADDRESS;
+
+transporter.verify((error) => {
+  if (error) {
+    console.error('Email transporter verification failed:', error.message);
+  } else {
+    console.log('Email transporter ready');
+  }
+});
+
+
 
 async function sendWelcomeEmail(to, name) {
-  if (!process.env.BREVO_API_KEY) {
-    return { success: false, error: 'BREVO_API_KEY is not configured' };
-  }
-  if (!to || !name) {
-    return {success:false, error: 'sendWelcomeEmail: "to" and "name" are required'};
-  }
-
   try {
-    const response = await brevo.transactionalEmails.sendTransacEmail({
-      sender: { email: FROM, name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
+    const response = await transporter.sendMail({
+      from: { email:'hello@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
       to: [{ email: to, name: name }],
       subject: `Welcome to GadgetSpot, ${name}!`,
       htmlContent: `
@@ -34,7 +43,7 @@ async function sendWelcomeEmail(to, name) {
                 <div style="margin:24px 0;padding:14px 16px;border-left:4px solid #f5c542;background:#fff9e8;border-radius:8px;">
                   <p style="margin:0;color:#8a5d00;font-size:14px;">✨ Start browsing your favorite tech products today.</p>
                 </div>
-                <a href="https://yourdomain.com" style="display:inline-block;margin-top:12px;padding:12px 22px;background:#f5c542;color:#1f2b3a;text-decoration:none;border-radius:999px;font-weight:bold;">Shop Now</a>
+                <a href="https://gadgetspot.com.ng/products" style="display:inline-block;margin-top:12px;padding:12px 22px;background:#f5c542;color:#1f2b3a;text-decoration:none;border-radius:999px;font-weight:bold;">Shop Now</a>
               </div>
               <div style="padding:0 24px 24px;color:#6f8ba0;text-align:center;font-size:13px;">
                 <div style="border-top:1px solid #e6f3fb;padding-top:16px;">
@@ -56,16 +65,12 @@ async function sendWelcomeEmail(to, name) {
 }
 
 async function sendVerificationEmail(to, name, link) {
-  if (!process.env.BREVO_API_KEY) {
-    return { success: false, error: 'BREVO_API_KEY is not configured' };
-  }
-  if (!to || !name || !link) {
+    if (!to || !name || !link) {
     return { success: false, error: 'sendVerificationEmail: "to", "name", and "link" are required' };
   }
-
   try {
-    const response = await brevo.transactionalEmails.sendTransacEmail({
-      sender: { email: FROM, name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
+    const response = await transporter.sendMail({
+      from: { email: 'noreply@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
       to: [{ email: to, name: name }],
       subject: 'Verify your email',
       htmlContent: `
@@ -107,16 +112,13 @@ async function sendVerificationEmail(to, name, link) {
 }
 
 async function sendPasswordResetEmail(to, name, link) {
-  if (!process.env.BREVO_API_KEY) {
-    return { success: false, error: 'BREVO_API_KEY is not configured' };
-  }
+  
   if (!to || !name || !link) {
     return { success: false, error: 'sendPasswordResetEmail: "to", "name", and "link" are required' };
   }
-
   try {
-    const response = await brevo.transactionalEmails.sendTransacEmail({
-      sender: { email: FROM, name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
+    const response = await transporter.sendMail({
+      from: { email: 'noreply@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
       to: [{ email: to, name: name }],
       subject: 'Reset your password',
       htmlContent: `
@@ -157,19 +159,16 @@ async function sendPasswordResetEmail(to, name, link) {
   }
 }
 
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'adeniranadebayo2022@gmail.com';
+const SUPPORT_EMAIL =  'support@gadgetspot.com.ng';
 
 async function sendContactEmail({ name, email, subject, message }) {
-  if (!process.env.BREVO_API_KEY) {
-    return { success: false, error: 'BREVO_API_KEY is not configured' };
-  }
   if (!name || !email || !subject || !message) {
     return { success: false, error: 'sendContactEmail: "name", "email", "subject", and "message" are required' };
   }
 
   try {
-    const response = await brevo.transactionalEmails.sendTransacEmail({
-      sender: { email: FROM, name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
+    const response = await transporter.sendMail({
+      from: { email: 'noreply@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
       to: [{ email: SUPPORT_EMAIL }],
       replyTo: { email: email, name: name },
       subject: `Contact: ${subject}`,
@@ -201,9 +200,7 @@ async function sendContactEmail({ name, email, subject, message }) {
 }
 
 async function sendOrderConfirmationEmail({ to, name, order }) {
-  if (!process.env.BREVO_API_KEY) {
-    return { success: false, error: 'BREVO_API_KEY is not configured' };
-  }
+ 
   if (!to || !name || !order) {
     return { success: false, error: 'sendOrderConfirmationEmail: "to", "name", and "order" are required' };
   }
@@ -223,8 +220,8 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
     .join('');
 
   try {
-    const response = await brevo.transactionalEmails.sendTransacEmail({
-      sender: { email: FROM, name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
+    const response = await transporter.sendMail({
+      from: { email: 'order@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
       to: [{ email: to, name: name }],
       subject: `Order Confirmation - ${order.reference || 'GadgetSpot'}`,
       htmlContent: `
@@ -307,13 +304,9 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
 }
 
 async function sendOrderStatusUpdateEmail({ to, name, order }) {
-  if (!process.env.BREVO_API_KEY) {
-    return { success: false, error: 'BREVO_API_KEY is not configured' };
-  }
   if (!to || !name || !order) {
     return { success: false, error: 'sendOrderStatusUpdateEmail: "to", "name", and "order" are required' };
   }
-
   const statusLabel = String(order.status || '').charAt(0).toUpperCase() + String(order.status || '').slice(1);
 
   const itemsHtml = (order.items || [])
@@ -331,8 +324,8 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
     .join('');
 
   try {
-    const response = await brevo.transactionalEmails.sendTransacEmail({
-      sender: { email: FROM, name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
+    const response = await transporter.sendMail ({
+      from: { email: 'order@gadgetspot.com.ng', name: process.env.EMAIL_FROM_NAME || 'GadgetSpot' },
       to: [{ email: to, name: name }],
       subject: `Order Status Updated - ${order.reference || 'GadgetSpot'}`,
       htmlContent: `
