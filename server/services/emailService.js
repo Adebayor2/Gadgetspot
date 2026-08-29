@@ -1,47 +1,34 @@
 
-const nodemailer = require("nodemailer");
+const Brevo = require("brevo")
 
-const transporter = nodemailer.createTransport({
-  host: "smtp-relay.brevo.com",
-  port: 587,
-  secure: true,
-  auth: {
-    user: process.env.BREVO_SMTP_LOGIN,
-    pass: process.env.BREVO_SMTP_KEY,
-  },
-});
+const client = new Brevo.BrevoClient({
+  apiKey: process.env.BREVO_API_KEY,
+})
 
-transporter.verify((error) => {
-  if (error) {
-    console.error('Email transporter verification failed:', error.message);
-  } else {
-    console.log('Email transporter ready');
-  }
-});
+const SENDER_EMAIL = process.env.EMAIL_FROM || "hello@gadgetspot.com.ng"
+const SENDER_NAME = process.env.EMAIL_FROM_NAME || "GadgetSpot"
 
-const formatFrom = (email, name) => {
-  const senderName = name || process.env.EMAIL_FROM_NAME || 'GadgetSpot';
-  return `"${senderName}" <${email}>`;
-};
+const buildSender = (email, name) => {
+  const senderEmail = email || SENDER_EMAIL
+  const senderName = name || SENDER_NAME
+  return { email: senderEmail, name: senderName }
+}
 
-const formatReplyTo = (email, name) => {
-  if (name) {
-    return `"${name}" <${email}>`;
-  }
-  return email;
-};
-
+const buildReplyTo = (email, name) => {
+  if (!email) return undefined
+  return { email, name }
+}
 
 async function sendWelcomeEmail(to, name) {
   if (!to) {
-    return { success: false, error: 'sendWelcomeEmail: "to" is required' };
+    return { success: false, error: 'sendWelcomeEmail: "to" is required' }
   }
   try {
-    const response = await transporter.sendMail({
-      from: formatFrom('hello@gadgetspot.com.ng'),
+    const response = await client.transactionalEmails.sendTransacEmail({
+      sender: buildSender('hello@gadgetspot.com.ng'),
       to: [{ email: to, name: name || '' }],
       subject: `Welcome to GadgetSpot, ${name || 'there'}!`,
-      html: `
+      htmlContent: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -83,11 +70,11 @@ async function sendVerificationEmail(to, name, link) {
     return { success: false, error: 'sendVerificationEmail: "to" and "link" are required' };
   }
   try {
-    const response = await transporter.sendMail({
-      from: formatFrom('noreply@gadgetspot.com.ng'),
+    const response = await client.transactionalEmails.sendTransacEmail({
+      sender: buildSender('noreply@gadgetspot.com.ng'),
       to: [{ email: to, name: name || '' }],
       subject: 'Verify your email',
-      html: `
+      htmlContent: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -130,11 +117,11 @@ async function sendPasswordResetEmail(to, name, link) {
     return { success: false, error: 'sendPasswordResetEmail: "to" and "link" are required' };
   }
   try {
-    const response = await transporter.sendMail({
-      from: formatFrom('noreply@gadgetspot.com.ng'),
+    const response = await client.transactionalEmails.sendTransacEmail({
+      sender: buildSender('noreply@gadgetspot.com.ng'),
       to: [{ email: to, name: name || '' }],
       subject: 'Reset your password',
-      html: `
+      htmlContent: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -180,12 +167,12 @@ async function sendContactEmail({ name, email, subject, message }) {
   }
 
   try {
-    const response = await transporter.sendMail({
-      from: formatFrom('hello@gadgetspot.com.ng'),
+    const response = await client.transactionalEmails.sendTransacEmail({
+      sender: buildSender('hello@gadgetspot.com.ng'),
       to: [{ email: SUPPORT_EMAIL }],
-      replyTo: formatReplyTo(email, name),
+      replyTo: buildReplyTo(email, name),
       subject: `Contact: ${subject}`,
-      html: `
+      htmlContent: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
@@ -235,11 +222,11 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
   const formattedDate = createdAt.toLocaleString();
 
   try {
-    const response = await transporter.sendMail({
-      from: formatFrom('order@gadgetspot.com.ng'),
+    const response = await client.transactionalEmails.sendTransacEmail({
+      sender: buildSender('order@gadgetspot.com.ng'),
       to: [{ email: to, name: name || '' }],
       subject: `Order Confirmation - ${order.reference || 'GadgetSpot'}`,
-      html: `
+      htmlContent: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">
