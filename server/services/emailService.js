@@ -1,5 +1,5 @@
 
-const Brevo = require("brevo")
+const Brevo = require("@getbrevo/brevo")
 
 const client = new Brevo.BrevoClient({
   apiKey: process.env.BREVO_API_KEY,
