@@ -20,6 +20,9 @@ router.post("/reset-password", authLimiter, resetPassword);
 router.put("/change-password", protect, changePassword);
 router.put("/profile", protect, updateProfile);
 router.get("/verify-email/:token", verifyEmail);
+router.get("/verify-email", verifyEmail);
+router.post("/verify-email", verifyEmail);
+router.post("/verify-email/:token", verifyEmail);
 router.post("/resend-verification", protect, resendVerificationEmail);
 router.post("/change-email", protect, changeEmail);
 

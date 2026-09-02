@@ -79,7 +79,6 @@ const userSignup = async (req, res) => {
     }
 }
 
-
 const userLogin = async (req, res) => {
     try {
         const { email, password } = req.body
@@ -160,6 +159,7 @@ const refreshAccessToken = async (req, res) => {
         });
     }
 };
+
 const googleSignin = async (req, res) => {
     const { token } = req.body;
     try {
@@ -247,6 +247,7 @@ const logoutUser = async (req, res) => {
         message: "Log out successful",
     });
 };
+
 const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
@@ -273,22 +274,20 @@ const forgotPassword = async (req, res) => {
         userFound.resetPasswordTokenExpires = Date.now() + 15 * 60 * 1000 // 15 minutes
         await userFound.save()
         const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${randomToken}`
-         const emailResult = await sendPasswordResetEmail(resetEmail, resetName, resetUrl)
-         if (!emailResult.success) {
-             console.log('Password reset email send failed:', emailResult.error)
-             return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' })
-         }
-         return res.status(200).json({ message: 'Reset mail sent Check your Email' })
+        const emailResult = await sendPasswordResetEmail(resetEmail, resetName, resetUrl)
+        if (!emailResult.success) {
+            console.log('Password reset email send failed:', emailResult.error)
+            return res.status(500).json({ message: 'Failed to send reset email. Please try again later.' })
+        }
+        return res.status(200).json({ message: 'Reset mail sent Check your Email' })
     }
     catch (error) {
-        res.status(500).json({ message: 'Error Sending Mail to user' })
-        console.log(error)
+        console.error("Forgot password error:", error);
+        return res.status(500).json({ message: 'Error Sending Mail to user' });
     }
-
 }
 
 const resetPassword = async (req, res) => {
-
     try {
         const { token, password } = req.body
 
@@ -316,16 +315,10 @@ const resetPassword = async (req, res) => {
         return res.status(200).json({ message: 'Password reset successful' })
     }
     catch (error) {
-        console.log(error)
+        console.error("Reset password error:", error);
         return res.status(500).json({ message: "Something Went Wrong" })
     }
-
-
-
-
-
 }
-
 
 const changePassword = async (req, res) => {
     try {
@@ -433,8 +426,23 @@ const updateProfile = async (req, res) => {
 
 const verifyEmail = async (req, res) => {
     try {
-        const { token } = req.params;
+        const token = req.body?.token || req.params?.token || req.query?.token;
+        const isApiRequest = Boolean(
+            req.method === 'POST' ||
+            req.xhr ||
+            req.is('json') ||
+            (req.headers.accept && req.headers.accept.includes('application/json')) ||
+            req.query?.format === 'json'
+        );
+
         if (!token) {
+            if (isApiRequest) {
+                return res.status(400).json({
+                    success: false,
+                    status: 'invalid',
+                    message: 'Verification token is required.',
+                });
+            }
             return res.redirect(`${process.env.CLIENT_URL}/verify-email?status=invalid`);
         }
 
@@ -442,11 +450,28 @@ const verifyEmail = async (req, res) => {
 
         const user = await User.findOne({
             emailVerificationToken: hashedToken,
-            emailVerificationTokenExpires: { $gt: Date.now() }
         });
 
         if (!user) {
+            if (isApiRequest) {
+                return res.status(400).json({
+                    success: false,
+                    status: 'invalid',
+                    message: 'This verification link is invalid or has already been used.',
+                });
+            }
             return res.redirect(`${process.env.CLIENT_URL}/verify-email?status=invalid`);
+        }
+
+        if (user.emailVerificationTokenExpires && user.emailVerificationTokenExpires < Date.now()) {
+            if (isApiRequest) {
+                return res.status(400).json({
+                    success: false,
+                    status: 'expired',
+                    message: 'This verification link has expired. Please request a new verification email.',
+                });
+            }
+            return res.redirect(`${process.env.CLIENT_URL}/verify-email?status=expired`);
         }
 
         user.isVerified = true;
@@ -454,9 +479,38 @@ const verifyEmail = async (req, res) => {
         user.emailVerificationTokenExpires = undefined;
         await user.save();
 
+        if (isApiRequest) {
+            return res.status(200).json({
+                success: true,
+                status: 'success',
+                message: 'Your email has been verified successfully! You can now access all features.',
+                user: {
+                    id: user._id,
+                    fullName: user.fullName,
+                    email: user.email,
+                    role: user.role,
+                    isVerified: user.isVerified,
+                },
+            });
+        }
+
         return res.redirect(`${process.env.CLIENT_URL}/verify-email?status=success`);
     } catch (error) {
         console.error('Verify email error:', error);
+        const isApiRequest = Boolean(
+            req.method === 'POST' ||
+            req.xhr ||
+            req.is('json') ||
+            (req.headers.accept && req.headers.accept.includes('application/json')) ||
+            req.query?.format === 'json'
+        );
+        if (isApiRequest) {
+            return res.status(500).json({
+                success: false,
+                status: 'error',
+                message: 'Something went wrong while verifying your email. Please try again later.',
+            });
+        }
         return res.redirect(`${process.env.CLIENT_URL}/verify-email?status=error`);
     }
 };
