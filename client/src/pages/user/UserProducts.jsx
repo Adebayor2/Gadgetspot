@@ -21,7 +21,7 @@ const UserProducts = () => {
   const [loading, setLoading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 15;
+  const productsPerPage = 20;
 
   useEffect(() => {
     const paramQuery = searchParams.get('search') || '';
@@ -33,7 +33,7 @@ const UserProducts = () => {
     (async () => {
       try {
         const [productsRes, categoriesRes] = await Promise.all([
-          api.get('/products'),
+          api.get('/products', { params: { limit: 'all' } }),
           api.get('/categories'),
         ]);
         if (active) {
@@ -55,6 +55,10 @@ const UserProducts = () => {
     })();
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   const filteredProducts = useMemo(() => {
     let result = [...allProducts];

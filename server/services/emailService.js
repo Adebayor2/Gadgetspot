@@ -329,11 +329,11 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
   const formattedDate = createdAt.toLocaleString();
 
   try {
-    const response = await transporter.sendMail({
-      from: formatFrom('order@gadgetspot.com.ng'),
+    const response = await client.transactionalEmails.sendTransacEmail({
+      sender: buildSender('order@gadgetspot.com.ng'),
       to: [{ email: to, name: name || '' }],
       subject: `Order Status Updated - ${order.reference || 'GadgetSpot'}`,
-      html: `
+      htmlContent: `
         <div style="margin:0;padding:0;background-color:#eaf7ff;font-family:Arial,sans-serif;">
           <div style="max-width:620px;margin:0 auto;padding:24px;">
             <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(15, 76, 129, 0.12);">

@@ -34,7 +34,7 @@ const Products = () => {
     (async () => {
       try {
         const [productsRes, categoriesRes] = await Promise.all([
-          api.get('/products'),
+          api.get('/products', { params: { limit: 'all' } }),
           api.get('/categories'),
         ]);
         if (active) {
@@ -56,6 +56,10 @@ const Products = () => {
     })();
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   const filteredProducts = useMemo(() => {
     let result = [...allProducts];

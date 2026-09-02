@@ -1,8 +1,8 @@
-const Product = require('../models/productModel')
-const cloudinary = require('../config/cloudinary')
+const Product = require('../models/productModel');
+const cloudinary = require('../config/cloudinary');
 
 const createProduct = async (req, res) => {
-    const { title, description, category, brand, price, discountPrice, stock, featured, colors } = req.body
+    const { title, description, category, brand, price, discountPrice, stock, featured, colors } = req.body;
     try {
         if (!title || !description || !category || !brand) {
             return res.status(400).json({
@@ -86,11 +86,25 @@ const getProducts = async (req, res) => {
         else if (req.query.sort === 'rating') sortOption = { rating: -1 };
         else if (req.query.sort === 'featured') sortOption = { featured: -1, rating: -1 };
 
+        const totalProducts = await Product.countDocuments(query);
+
+        // Support returning all products when explicitly requested (for full catalog / client-side filtering)
+        if (req.query.limit === 'all' || req.query.limit === '0' || req.query.all === 'true') {
+            const products = await Product.find(query).sort(sortOption);
+            return res.status(200).json({
+                success: true,
+                count: products.length,
+                totalProducts,
+                totalPages: 1,
+                currentPage: 1,
+                products,
+            });
+        }
+
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 15;
+        const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
-        const totalProducts = await Product.countDocuments(query);
         const products = await Product.find(query)
             .sort(sortOption)
             .skip(skip)
@@ -100,14 +114,14 @@ const getProducts = async (req, res) => {
             success: true,
             count: products.length,
             totalProducts,
-            totalPages: Math.ceil(totalProducts / limit),
+            totalPages: Math.ceil(totalProducts / limit) || 1,
             currentPage: page,
             products,
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message,
+            message: error && error.message ? error.message : String(error),
         });
     }
 };

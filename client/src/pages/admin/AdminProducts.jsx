@@ -20,34 +20,36 @@ const AdminProducts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  const productsPerPage = 10;
+  const productsPerPage = 20;
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const params = {
+        page: currentPage,
+        limit: productsPerPage,
+      };
+      if (searchQuery) {
+        params.search = searchQuery;
+      }
+      const { data } = await api.get('/products', { params });
+      setProducts(data.products || []);
+      setTotalPages(data.totalPages || 1);
+      setTotalProducts(data.totalProducts || 0);
+    } catch (error) {
+      console.error('Failed to load products', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const params = {
-          page: currentPage,
-          limit: productsPerPage,
-        };
-        if (searchQuery) {
-          params.search = searchQuery;
-        }
-        const { data } = await api.get('/products', { params });
-        if (active) {
-          setProducts(data.products || []);
-          setTotalPages(data.totalPages || 1);
-          setTotalProducts(data.totalProducts || 0);
-        }
-      } catch (error) {
-        console.error('Failed to load products', error);
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
+    fetchProducts();
   }, [currentPage, searchQuery]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   const openAdd = () => {
     setEditingProduct(null);
@@ -59,8 +61,8 @@ const AdminProducts = () => {
     setIsModalOpen(true);
   };
 
-  const handleCreated = (product) => {
-    setProducts((prev) => [product, ...prev]);
+  const handleCreated = () => {
+    fetchProducts();
   };
 
   const handleUpdated = (product) => {
@@ -80,9 +82,13 @@ const AdminProducts = () => {
     try {
       setDeleteLoading(true);
       await api.delete(`/products/${productToDelete._id}`);
-      setProducts((prev) => prev.filter((p) => p._id !== productToDelete._id));
       toast.success('Product deleted successfully');
       closeDeleteModal();
+      if (products.length === 1 && currentPage > 1) {
+        setCurrentPage((prev) => prev - 1);
+      } else {
+        fetchProducts();
+      }
     } catch (error) {
       const message = error.response?.data?.message || 'Failed to delete product';
       toast.error(message);
@@ -131,7 +137,10 @@ const AdminProducts = () => {
               placeholder="Search by product name, brand or category..."
               className="bg-transparent border-none outline-none text-sm font-medium text-slate-700 w-full"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
           <button className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-50 text-slate-00 font-bold border border-slate-200 hover:bg-slate-100 transition-all">
@@ -269,7 +278,7 @@ const AdminProducts = () => {
               totalPages={totalPages}
               onPageChange={setCurrentPage}
               itemsRange={{
-                start: (currentPage - 1) * productsPerPage + 1,
+                start: totalProducts > 0 ? (currentPage - 1) * productsPerPage + 1 : 0,
                 end: Math.min(currentPage * productsPerPage, totalProducts),
               }}
               totalItems={totalProducts}
