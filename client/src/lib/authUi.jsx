@@ -52,6 +52,7 @@ const GoogleIcon = () => (
 
 export const GoogleButton = ({ label, onClick }) => (
   <button
+    type='button'
     onClick={onClick}
     className='w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold py-2.5 px-4 rounded-xl border-2 border-slate-200 transition-all duration-200 cursor-pointer'
   >

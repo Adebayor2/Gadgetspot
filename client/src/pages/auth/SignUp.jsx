@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiUser, FiMail, FiLock, FiPhone } from 'react-icons/fi'
 import { toast } from 'react-hot-toast'
@@ -91,6 +91,7 @@ const SignUp = () => {
       const idToken = await result.user.getIdToken()
       const res = await api.post('/auth/google-signin', {
         token: idToken,
+        name: result.user.displayName || '',
       })
 
       const { accessToken, token, user } = res.data
@@ -108,7 +109,11 @@ const SignUp = () => {
         navigate('/dashboard')
       }
     } catch (error) {
-      const message = error?.response?.data?.message || 'Error logging in with Google'
+      // Don't show error if user simply closed the popup
+      if (error?.code === 'auth/popup-closed-by-user' || error?.code === 'auth/cancelled-popup-request') {
+        return
+      }
+      const message = error?.response?.data?.message || error?.message || 'Error logging in with Google'
       console.error('Authentication Error:', error)
       toast.error(message, errorToastOptions)
     }
@@ -190,17 +195,17 @@ const SignUp = () => {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     placeholder='Create a strong password'
-                   {...register('password', {
-                     required: 'Password is required',
-                     minLength: {
-                       value: 6,
-                       message: 'Password must be at least 6 characters'
-                     },
-                     validate: {
-                       hasUpperCase: (value) => /[A-Z]/.test(value) || 'Password must contain at least one uppercase letter',
-                       hasNumber: (value) => /[0-9]/.test(value) || 'Password must contain at least one number',
-                     }
-                   })}
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: {
+                        value: 6,
+                        message: 'Password must be at least 6 characters'
+                      },
+                      validate: {
+                        hasUpperCase: (value) => /[A-Z]/.test(value) || 'Password must contain at least one uppercase letter',
+                        hasNumber: (value) => /[0-9]/.test(value) || 'Password must contain at least one number',
+                      }
+                    })}
                     className={inputClass(errors.password, true)}
                   />
                   <TogglePasswordButton

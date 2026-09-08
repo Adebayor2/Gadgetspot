@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const { generateAccessToken, generateRefreshToken } = require('../utils/generateToken')
 const cookieOptions = require('../utils/cookieOptions')
 const User = require('../models/userModel')
-const { getAuth } = require('firebase-admin/auth')
+const { getFirebaseAuth } = require('../config/firebase')
 const { sendWelcomeEmail, sendVerificationEmail, sendPasswordResetEmail } = require('../services/emailService')
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -91,6 +91,15 @@ const userLogin = async (req, res) => {
         if (!userExist) {
             return res.status(400).json({ success: false, message: "Invalid credentials" })
         }
+
+        // Guard: Google-only users have no password
+        if (!userExist.password) {
+            return res.status(400).json({
+                success: false,
+                message: "This account was registered using Google Sign-In. Please sign in with Google.",
+            });
+        }
+
         const isMatch = await bcrypt.compare(password, userExist.password);
         if (!isMatch) {
             return res.status(400).json({ success: false, message: "Invalid credentials", });
@@ -115,6 +124,7 @@ const userLogin = async (req, res) => {
                 email: userExist.email,
                 role: userExist.role,
                 phone: userExist.phone,
+                address: userExist.address,
                 isVerified: userExist.isVerified,
             },
         })
@@ -161,14 +171,17 @@ const refreshAccessToken = async (req, res) => {
 };
 
 const googleSignin = async (req, res) => {
-    const { token } = req.body;
+    const { token, name: clientName, fullName: clientFullName } = req.body;
     try {
         if (!token) {
             return res.status(401).json({ success: false, message: 'Token is required' });
         }
-        const auth = getAuth();
+        const auth = getFirebaseAuth();
         const decodedToken = await auth.verifyIdToken(token);
-        const { uid, name, email } = decodedToken;
+        const { uid, name: tokenName, email } = decodedToken;
+
+        // Use name from token, or from client payload as fallback
+        const googleDisplayName = tokenName || clientName || clientFullName || '';
 
         if (!email) {
             return res.status(400).json({ success: false, message: 'Email not available in token' });
@@ -178,19 +191,41 @@ const googleSignin = async (req, res) => {
         let userFound = await User.findOne({ email: normalizedEmail });
 
         if (userFound) {
+            // Link Google credentials and update name
+            let needsSave = false;
+
             if (userFound.authProviders !== 'google' || !userFound.googleId) {
                 userFound.authProviders = 'google';
                 userFound.googleId = uid;
+                needsSave = true;
+            }
+
+            // Sync name from Google account
+            if (googleDisplayName && googleDisplayName !== userFound.fullName) {
+                userFound.fullName = googleDisplayName;
+                needsSave = true;
+            }
+
+            // Mark email as verified since Google has verified it
+            if (!userFound.isVerified) {
+                userFound.isVerified = true;
+                userFound.emailVerificationToken = undefined;
+                userFound.emailVerificationTokenExpires = undefined;
+                needsSave = true;
+            }
+
+            if (needsSave) {
                 await userFound.save();
             }
         } else {
             userFound = await User.create({
                 googleId: uid,
-                fullName: name || 'Google User',
+                fullName: googleDisplayName || 'Google User',
                 email: normalizedEmail,
                 authProviders: 'google',
+                isVerified: true,
             });
-            sendWelcomeEmail(normalizedEmail, name).catch((err) => {
+            sendWelcomeEmail(normalizedEmail, googleDisplayName || 'Google User').catch((err) => {
                 console.error('Google sign-in welcome email failed:', err.message || err);
             });
         }
@@ -214,6 +249,7 @@ const googleSignin = async (req, res) => {
                 fullName: userFound.fullName,
                 email: userFound.email,
                 phone: userFound.phone,
+                address: userFound.address,
                 role: userFound.role,
                 isVerified: userFound.isVerified,
             },
@@ -346,10 +382,17 @@ const changePassword = async (req, res) => {
             });
         }
 
-        if (user.googleId) {
+        if (user.googleId && !user.password) {
             return res.status(400).json({
                 success: false,
                 message: "This account uses Google Sign-In and cannot change its password here",
+            });
+        }
+
+        if (!user.password) {
+            return res.status(400).json({
+                success: false,
+                message: "No password set for this account",
             });
         }
 
@@ -560,8 +603,12 @@ const changeEmail = async (req, res) => {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
 
-        if (user.googleId) {
+        if (user.googleId && !user.password) {
             return res.status(400).json({ success: false, message: 'Google accounts cannot change email here' });
+        }
+
+        if (!user.password) {
+            return res.status(400).json({ success: false, message: 'No password set for this account' });
         }
 
         const isMatch = await bcrypt.compare(currentPassword, user.password);

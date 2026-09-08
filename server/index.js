@@ -22,17 +22,19 @@ dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT
-const CLIENT_URL = process.env.CLIENT_URL
-const admin = require('firebase-admin')
+const CLIENT_URL = process.env.CLIENT_URL?.replace(/\/$/, '')
 
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  admin.initializeApp({
-    credential: admin.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-  })
-}
+// Initialize Firebase Admin SDK via dedicated config
+require('./config/firebase').initFirebaseAdmin()
+
+// Trust first proxy (Render, Railway, etc.) for accurate client IP in rate limiting
+app.set('trust proxy', 1)
+
 const allowedOrigins = [
- 'https://gadgetspot-tau.vercel.app',
- 'http://localhost:5173'
+  'https://gadgetspot-tau.vercel.app',
+  'https://gadgetspot.com.ng',
+  'https://www.gadgetspot.com.ng',
+  'http://localhost:5173'
 ]
 
 if (CLIENT_URL) {
@@ -44,7 +46,7 @@ app.use(cors({
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
-    } else { 
+    } else {
       callback(new Error('Not allowed by CORS'))
     }
   },

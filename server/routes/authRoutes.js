@@ -10,11 +10,23 @@ const authLimiter = rateLimit({
   message: { success: false, message: "Too many authentication attempts, please try again later." },
 });
 
+const googleLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { success: false, message: "Too many Google sign-in attempts, please try again later." },
+});
+
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { success: false, message: "Too many refresh requests, please try again later." },
+});
+
 router.post("/register", authLimiter, userSignup);
 router.post("/login", authLimiter, userLogin);
 router.post("/logout", logoutUser);
-router.get("/refresh", authLimiter, refreshAccessToken);
-router.post("/google-signin", authLimiter, googleSignin);
+router.get("/refresh", refreshLimiter, refreshAccessToken);
+router.post("/google-signin", googleLimiter, googleSignin);
 router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/reset-password", authLimiter, resetPassword);
 router.put("/change-password", protect, changePassword);
@@ -26,4 +38,4 @@ router.post("/verify-email/:token", verifyEmail);
 router.post("/resend-verification", protect, resendVerificationEmail);
 router.post("/change-email", protect, changeEmail);
 
-module.exports = router;
+module.exports = router;

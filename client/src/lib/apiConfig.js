@@ -33,10 +33,16 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        // Auth endpoints should NOT trigger token refresh or session-expired redirect
+        const authEndpoints = ['/auth/login', '/auth/google-signin', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/auth/refresh'];
+        const requestUrl = originalRequest?.url || '';
+        const isAuthEndpoint = authEndpoints.some((endpoint) => requestUrl.includes(endpoint));
+
         if (
             error.response &&
             (error.response.status === 401 || error.response.status === 403) &&
-            !originalRequest._retry
+            !originalRequest._retry &&
+            !isAuthEndpoint
         ) {
             originalRequest._retry = true;
 
