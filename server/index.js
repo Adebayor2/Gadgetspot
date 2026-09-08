@@ -5,6 +5,15 @@ const dotenv = require('dotenv')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 
+dotenv.config()
+
+const requiredEnvironmentVariables = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET']
+const missingEnvironmentVariables = requiredEnvironmentVariables.filter((name) => !process.env[name])
+
+if (missingEnvironmentVariables.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvironmentVariables.join(', ')}`)
+}
+
 const dbConnect = require('./config/db')
 const errorMiddleware = require('./middleWares/errorMiddleware')
 const authRoutes = require('./routes/authRoutes')
@@ -18,10 +27,8 @@ const cartRoutes = require('./routes/cartRoutes')
 const paymentRoutes = require('./routes/paymentRoutes')
 const deliveryRoutes = require('./routes/deliveryRoutes')
 
-dotenv.config()
-
 const app = express()
-const PORT = process.env.PORT
+const PORT = process.env.PORT || 5000
 const CLIENT_URL = process.env.CLIENT_URL?.replace(/\/$/, '')
 
 // Initialize Firebase Admin SDK via dedicated config
