@@ -63,6 +63,9 @@ const Orders = () => {
                                             </span>
                                         </div>
                                         <div className="text-sm text-slate-500 space-y-2">
+                                            <p className="break-all">
+                                                <span className="font-semibold text-slate-700">Reference:</span> {order.reference}
+                                            </p>
                                             <p>
                                                 <span className="font-semibold text-slate-700">Items:</span>{' '}
                                                 {order.items?.slice(0, 2).map((item, idx) => (
@@ -115,7 +118,10 @@ const Orders = () => {
                                     ) : (
                                         orders.map((order) => (
                                             <tr key={order._id} className="hover:bg-slate-50/50 transition-colors">
-                                                <td className="px-4 py-4 font-semibold text-slate-800">#{order._id.slice(-6)}</td>
+                                                <td className="px-4 py-4 font-semibold text-slate-800">
+                                                    <div>#{order._id.slice(-6)}</div>
+                                                    <div className="mt-1 max-w-45 break-all text-xs font-normal text-slate-400">{order.reference}</div>
+                                                </td>
                                                 <td className="px-4 py-4 text-sm text-slate-600 space-y-1">
                                                     {order.items?.slice(0, 2).map((item) => (
                                                         <div key={`${order._id}-${item.product}`} className="flex flex-wrap gap-2 items-center">

@@ -8,10 +8,16 @@ const toObjectId = (value) => {
   return value;
 };
 
+const validateQuantity = (quantity) => Number.isInteger(quantity) && quantity >= 1 && quantity <= 99;
+
 const addToCart = async (req, res) => {
   try {
     const { productId, quantity = 1, color = '' } = req.body
     const userId = req.user?.id || req.user?._id
+
+    if (!mongoose.Types.ObjectId.isValid(productId) || !validateQuantity(quantity)) {
+      return res.status(400).json({ success: false, message: 'Invalid product or quantity' })
+    }
 
     const user = await User.findById(userId)
     if (!user) {
@@ -23,6 +29,9 @@ const addToCart = async (req, res) => {
     )
 
     if (existingItem) {
+      if (!validateQuantity(existingItem.quantity + quantity)) {
+        return res.status(400).json({ success: false, message: 'Cart quantity cannot exceed 99' })
+      }
       existingItem.quantity += quantity
     } else {
       user.cart.push({ product: productId, quantity, color })
@@ -66,7 +75,11 @@ const updateCartQuantity = async (req, res) => {
     const { quantity, color = '' } = req.body
     const userId = req.user?.id || req.user?._id
 
-    if (quantity <= 0) return removeFromCart(req, res)
+    if (!Number.isInteger(quantity) || quantity < 0 || quantity > 99) {
+      return res.status(400).json({ success: false, message: 'Quantity must be a whole number between 0 and 99' })
+    }
+
+    if (quantity === 0) return removeFromCart(req, res)
 
     const user = await User.findById(userId).populate('cart.product')
     if (!user) {

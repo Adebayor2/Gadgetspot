@@ -12,7 +12,7 @@ export const setAccessToken = (token) => {
 export const getAccessToken = () => accessToken;
 
 const api = axios.create({
-    baseURL: API_BASE_URL ||'http://localhost:5002/api',
+    baseURL: API_BASE_URL || 'http://localhost:5002/api',
     withCredentials: true,
 });
 
@@ -41,6 +41,7 @@ api.interceptors.response.use(
         if (
             error.response &&
             (error.response.status === 401 || error.response.status === 403) &&
+            originalRequest &&
             !originalRequest._retry &&
             !isAuthEndpoint
         ) {
@@ -56,6 +57,7 @@ api.interceptors.response.use(
                 const newAccessToken = response.data.accessToken;
                 setAccessToken(newAccessToken);
 
+                originalRequest.headers = originalRequest.headers || {};
                 originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
 
                 return api(originalRequest);
@@ -63,6 +65,7 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 console.log("Refresh token expired. Logging out...");
                 toast.error("Session expired. Please login again.", errorToastOptions);
+                await axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true }).catch(() => undefined);
                 setAccessToken(null);
                 logout();
                 window.location.href = "/signin";

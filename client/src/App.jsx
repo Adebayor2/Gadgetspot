@@ -1,4 +1,4 @@
-import React from 'react'
+import { useEffect } from 'react'
 import { Routes, Route } from "react-router-dom"
 import { Toaster } from 'react-hot-toast'
 import Home from './pages/Home'
@@ -33,11 +33,10 @@ import VerifyEmail from './pages/auth/VerifyEmail'
 import GuestFavourites from './pages/GuestFavourites'
 import Favourites from './pages/user/Favourites'
 import GuestTrackOrder from './pages/GuestTrackOrder'
-import UserDashboardLayout from './components/user/UserDashboardLayout'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import Terms from './pages/Terms'
 import PaymentCallback from './pages/PaymentCallback'
-import { useStore } from './lib/useStore'
+import { restoreSession, useStore } from './lib/useStore'
 import NotFound from './pages/NotFound'
 
 const CartPage = () => {
@@ -56,6 +55,9 @@ const ProductDetailPage = () => {
 };
 
 const App = () => {
+  useEffect(() => {
+    restoreSession();
+  }, []);
 
   return (
     <>
@@ -78,7 +80,7 @@ const App = () => {
           <Route path='/forgotpassword' element={<ForgotPassword />}></Route>
           <Route path='/reset-password' element={<ResetPassword />}></Route>
           <Route path='/verify-email' element={<VerifyEmail />}></Route>
-          <Route path='*' element={<NotFound/>}></Route>
+          <Route path='*' element={<NotFound />}></Route>
 
 
 

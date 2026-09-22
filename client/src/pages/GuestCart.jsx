@@ -164,12 +164,12 @@ const GuestCart = () => {
           {/* Cart Items List */}
           <div className="lg:col-span-2 space-y-4">
             {cart.map((item) => (
-              <div key={item.id || item._id} className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-slate-100 flex gap-4 md:gap-6 items-center group transition-all duration-300 hover:shadow-md">
-                <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-50 rounded-xl overflow-hidden flex-shrink-0">
+              <div key={`${item.id || item._id}-${item.color || ''}`} className="bg-white rounded-2xl p-4 md:p-6 shadow-sm border border-slate-100 flex gap-4 md:gap-6 items-center group transition-all duration-300 hover:shadow-md">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-50 rounded-xl overflow-hidden shrink-0">
                   <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
 
-                    <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-2">
                     <div className="min-w-0">
                       <h3 className="text-base md:text-lg font-bold text-slate-900 leading-tight truncate">{item.name}</h3>
@@ -189,22 +189,22 @@ const GuestCart = () => {
                   </div>
 
                   <div className="flex justify-between items-center mt-3">
-                      <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
-                        <button
-                          onClick={() => handleUpdateQuantity(item, -1)}
-                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-white hover:text-sky-500 rounded-lg transition-all"
-                        >
-                          <FiMinus size={14} />
-                        </button>
-                        <span className="w-8 text-center font-bold text-slate-800">{item.quantity}</span>
-                        <button
-                          onClick={() => handleUpdateQuantity(item, 1)}
-                          className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-white hover:text-sky-500 rounded-lg transition-all"
-                        >
-                          <FiPlus size={14} />
-                        </button>
-                      </div>
-                      <p className="text-lg md:text-xl font-extrabold text-slate-900">₦{((item.discountPrice > 0 ? item.discountPrice : item.price || 0) * item.quantity).toLocaleString()}</p>
+                    <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                      <button
+                        onClick={() => handleUpdateQuantity(item, -1)}
+                        className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-white hover:text-sky-500 rounded-lg transition-all"
+                      >
+                        <FiMinus size={14} />
+                      </button>
+                      <span className="w-8 text-center font-bold text-slate-800">{item.quantity}</span>
+                      <button
+                        onClick={() => handleUpdateQuantity(item, 1)}
+                        className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-white hover:text-sky-500 rounded-lg transition-all"
+                      >
+                        <FiPlus size={14} />
+                      </button>
+                    </div>
+                    <p className="text-lg md:text-xl font-extrabold text-slate-900">₦{((item.discountPrice > 0 ? item.discountPrice : item.price || 0) * item.quantity).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -215,18 +215,18 @@ const GuestCart = () => {
           <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-slate-100 sticky top-24">
             <h2 className="text-2xl font-bold text-slate-900 mb-6">Order Summary</h2>
 
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between text-slate-500 font-medium">
-                  <span>Subtotal</span>
-                  <span className="text-slate-900">₦{subtotal.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-slate-500 font-medium">
-                  <span>Shipping</span>
-                  <span className="text-slate-500 text-sm">
-                    Calculated at checkout
-                  </span>
-                </div>
-                <div className="pt-4 border-t border-slate-100 flex justify-between items-end">
+            <div className="space-y-4 mb-8">
+              <div className="flex justify-between text-slate-500 font-medium">
+                <span>Subtotal</span>
+                <span className="text-slate-900">₦{subtotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-slate-500 font-medium">
+                <span>Shipping</span>
+                <span className="text-slate-500 text-sm">
+                  Calculated at checkout
+                </span>
+              </div>
+              <div className="pt-4 border-t border-slate-100 flex justify-between items-end">
                 <span className="text-slate-900 font-bold text-lg">Total</span>
                 <span className="text-3xl font-black text-sky-500 tracking-tighter">₦{total.toLocaleString()}</span>
               </div>
@@ -234,7 +234,7 @@ const GuestCart = () => {
 
             <button
               onClick={handleCheckout}
-              className="w-full bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-sky-100 flex items-center justify-center gap-3 group active:scale-95"
+              className="w-full bg-linear-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-sky-100 flex items-center justify-center gap-3 group active:scale-95"
             >
               Checkout Now
               <FiArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -243,7 +243,7 @@ const GuestCart = () => {
             <div className="mt-4">
               <button
                 onClick={handleWhatsAppOrder}
-                className="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-green-100 flex items-center justify-center gap-3 group active:scale-95"
+                className="w-full bg-linear-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-green-100 flex items-center justify-center gap-3 group active:scale-95"
               >
                 <FiMessageCircle size={20} className="group-hover:scale-110 transition-transform" />
                 Send Order to WhatsApp

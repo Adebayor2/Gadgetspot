@@ -6,8 +6,9 @@ const Product = require('../models/productModel');
 const { getDeliveryFee } = require('../data/deliveryFees');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 
-const paystackSecretKey = () => process.env.PAYSTACK_SECRET_KEY ;
+const paystackSecretKey = () => process.env.PAYSTACK_SECRET_KEY;
 const paystackHeaders = () => ({ Authorization: `Bearer ${paystackSecretKey()}` });
+const normalizePaymentReference = (reference) => String(reference || '').trim();
 
 const validAddress = (address = {}) => (
   address && typeof address === 'object' &&
@@ -26,6 +27,11 @@ const buildOrderItems = async (items) => {
   if (products.length !== new Set(items.map((item) => String(item.product))).size) throw new Error('One or more products no longer exist');
 
   const byId = new Map(products.map((product) => [String(product._id), product]));
+  for (const item of items) {
+    const product = byId.get(String(item.product));
+    if (item.quantity > Number(product.stock || 0)) throw new Error(`Insufficient stock for ${product.title}`);
+  }
+
   return items.map((item) => {
     const product = byId.get(String(item.product));
     return {
@@ -40,6 +46,7 @@ const buildOrderItems = async (items) => {
 };
 
 const createPaidOrder = async (transaction) => {
+  const paymentReference = normalizePaymentReference(transaction.reference);
   const metadata = transaction.metadata || {};
   const items = metadata.items;
   const address = metadata.address;
@@ -53,77 +60,80 @@ const createPaidOrder = async (transaction) => {
   const expectedAmount = Math.round((subtotal + deliveryFee) * 100);
   if (transaction.amount !== expectedAmount) throw new Error('Payment amount does not match the order total');
 
-  // The unique reference makes callback and webhook processing idempotent.
-  const existingOrder = await Order.findOne({ reference: transaction.reference });
-  if (!existingOrder) {
-    const order = await Order.findOneAndUpdate(
-      { reference: transaction.reference },
-      {
-        $setOnInsert: {
-          user: metadata.userId || null,
-          items,
-          deliveryFee,
-          address,
-          amountPaid: transaction.amount / 100,
-          reference: transaction.reference,
-          status: 'paid',
-          customerName: metadata.customerName,
-          customerEmail: metadata.customerEmail,
-          customerPhone: metadata.customerPhone,
-          shippingAddress: address.line1,
-          subtotal,
-          shipping: deliveryFee,
-          total: transaction.amount / 100,
-        },
-      },
-      { returnDocument: 'after', upsert: true, runValidators: true }
-    );
+  // Create first so concurrent callback and webhook requests cannot both deduct stock.
+  if (!paymentReference) throw new Error('Payment reference is missing');
+  const existingOrder = await Order.findOne({ reference: paymentReference });
+  if (existingOrder) return existingOrder;
 
-    if (order && order.customerEmail && order.customerName) {
-      Promise.resolve()
-        .then(() => sendOrderConfirmationEmail({
-          to: order.customerEmail,
-          name: order.customerName,
-          order: order.toObject ? order.toObject() : order,
-        }))
-        .catch((err) => console.error('Order confirmation email error:', err));
-    }
-
-    await deductStock(items);
-
-    return order;
+  let order;
+  try {
+    order = await Order.create({
+      user: metadata.userId || null,
+      items,
+      deliveryFee,
+      address,
+      amountPaid: transaction.amount / 100,
+      reference: paymentReference,
+      status: 'paid',
+      customerName: metadata.customerName,
+      customerEmail: metadata.customerEmail,
+      customerPhone: metadata.customerPhone,
+      shippingAddress: address.line1,
+      subtotal,
+      shipping: deliveryFee,
+      total: transaction.amount / 100,
+    });
+  } catch (error) {
+    if (error?.code === 11000) return Order.findOne({ reference: paymentReference });
+    throw error;
   }
 
-  if (existingOrder && existingOrder.customerEmail && existingOrder.customerName) {
+  try {
+    await deductStock(items);
+  } catch (error) {
+    await Order.deleteOne({ _id: order._id });
+    throw error;
+  }
+
+  if (order.customerEmail && order.customerName) {
     Promise.resolve()
       .then(() => sendOrderConfirmationEmail({
-        to: existingOrder.customerEmail,
-        name: existingOrder.customerName,
-        order: existingOrder.toObject ? existingOrder.toObject() : existingOrder,
+        to: order.customerEmail,
+        name: order.customerName,
+        order: order.toObject ? order.toObject() : order,
       }))
       .catch((err) => console.error('Order confirmation email error:', err));
   }
 
-  return existingOrder;
+  return order;
 }
 
 const deductStock = async (items) => {
   if (!Array.isArray(items) || !items.length) return;
-  const bulkOps = items
-    .filter((item) => item && item.product && Number.isInteger(item.quantity) && item.quantity > 0)
-    .map((item) => ({
-      updateOne: {
-        filter: { _id: item.product },
-        update: { $inc: { stock: -item.quantity, sold: item.quantity } },
-      },
-    }));
+  const quantities = new Map();
+  for (const item of items) {
+    if (item?.product && Number.isInteger(item.quantity) && item.quantity > 0) {
+      const productId = String(item.product);
+      quantities.set(productId, (quantities.get(productId) || 0) + item.quantity);
+    }
+  }
 
-  if (!bulkOps.length) return;
-
+  const applied = [];
   try {
-    await Product.bulkWrite(bulkOps);
+    for (const [productId, quantity] of quantities) {
+      const updated = await Product.findOneAndUpdate(
+        { _id: productId, stock: { $gte: quantity } },
+        { $inc: { stock: -quantity, sold: quantity } },
+        { returnDocument: 'after' }
+      );
+      if (!updated) throw new Error('One or more products no longer have enough stock');
+      applied.push({ productId, quantity });
+    }
   } catch (error) {
-    console.error('Stock deduction failed:', error);
+    for (const { productId, quantity } of applied) {
+      await Product.updateOne({ _id: productId }, { $inc: { stock: quantity, sold: -quantity } });
+    }
+    throw error;
   }
 };
 
@@ -167,12 +177,14 @@ const verifyPayment = async (req, res, next) => {
     const { reference } = req.params;
     if (!reference || reference.length > 200) return res.status(400).json({ success: false, message: 'Invalid payment reference' });
     const transaction = await verifyReference(reference);
+    const paymentUserId = String(transaction.metadata?.userId || '');
     const userId = String(req.user?.id || req.user?._id || '');
-    if (String(transaction.metadata?.userId) !== userId) return res.status(403).json({ success: false, message: 'This payment belongs to another user' });
+    if (paymentUserId && !userId) return res.status(401).json({ success: false, message: 'Sign in to verify this payment' });
+    if (paymentUserId && paymentUserId !== userId) return res.status(403).json({ success: false, message: 'This payment belongs to another user' });
     const order = await createPaidOrder(transaction);
     return res.status(200).json({ success: true, message: 'Payment verified', order });
   } catch (error) {
-    if (error.message === 'Payment verification failed' || error.message?.includes('metadata') || error.message?.includes('amount')) return res.status(400).json({ success: false, message: error.message });
+    if (error.message === 'Payment verification failed' || error.message?.includes('metadata') || error.message?.includes('amount') || error.message?.includes('stock')) return res.status(400).json({ success: false, message: error.message });
     if (error.response?.data?.message) return res.status(502).json({ success: false, message: error.response.data.message });
     return next(error);
   }
@@ -187,7 +199,7 @@ const verifyGuestPayment = async (req, res, next) => {
     const order = await createPaidOrder(transaction);
     return res.status(200).json({ success: true, message: 'Payment verified', order });
   } catch (error) {
-    if (error.message === 'Payment verification failed' || error.message?.includes('metadata') || error.message?.includes('amount')) return res.status(400).json({ success: false, message: error.message });
+    if (error.message === 'Payment verification failed' || error.message?.includes('metadata') || error.message?.includes('amount') || error.message?.includes('stock')) return res.status(400).json({ success: false, message: error.message });
     if (error.response?.data?.message) return res.status(502).json({ success: false, message: error.response.data.message });
     return next(error);
   }

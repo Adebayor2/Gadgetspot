@@ -128,10 +128,10 @@ const GuestCheckout = () => {
                 </h2>
                 <div className="mt-6 grid gap-5 sm:grid-cols-2">
                   <Field label="Full name" error={errors.customerName}>
-                    <input name="customerName" value={form.customerName} onChange={change} className={fieldClass('customerName')} placeholder="Jane Doe" />
+                    <input name="customerName" value={form.customerName} onChange={change} className={fieldClass('customerName')} placeholder=" name" />
                   </Field>
                   <Field label="Email address" error={errors.customerEmail}>
-                    <input name="customerEmail" type="email" value={form.customerEmail} onChange={change} className={fieldClass('customerEmail')} placeholder="jane@example.com" />
+                    <input name="customerEmail" type="email" value={form.customerEmail} onChange={change} className={fieldClass('customerEmail')} placeholder="you@example.com" />
                   </Field>
                   <Field label="Phone number" error={errors.customerPhone}>
                     <input name="customerPhone" value={form.customerPhone} onChange={change} className={fieldClass('customerPhone')} placeholder="0801 234 5678" />

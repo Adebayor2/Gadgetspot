@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FiPackage, FiSearch, FiCheckCircle } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import api from '../lib/apiConfig';
@@ -7,51 +8,60 @@ import Footer from '../components/Footer';
 import Loader from '../components/Loader';
 
 const GuestTrackOrder = () => {
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const paymentReference = (searchParams.get('reference') || searchParams.get('trxref'))?.trim() || '';
+  const [reference, setReference] = useState(paymentReference);
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [loading, setLoading] = useState(Boolean(paymentReference));
+  const [searched, setSearched] = useState(Boolean(paymentReference));
 
-  const validateEmail = () => {
-    const trimmed = email.trim();
-    if (!trimmed) {
-      setEmailError('Email is required');
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('Please enter a valid email address');
-      return false;
-    }
-    setEmailError('');
-    return true;
-  };
+  useEffect(() => {
+    if (!paymentReference) return;
+
+    let active = true;
+    api.get('/orders/track', { params: { reference: paymentReference } })
+      .then(({ data }) => {
+        if (!active) return;
+        if (data.success && data.orders?.length) {
+          setOrders(data.orders);
+          toast.success(`Found ${data.orders.length} order(s)`);
+        } else {
+          setOrders([]);
+          toast.error('No order found for this payment reference');
+        }
+      })
+      .catch((error) => {
+        if (!active) return;
+        setOrders([]);
+        toast.error(error.response?.data?.message || 'Failed to track orders');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [paymentReference]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const trimmed = email.trim();
-    if (!trimmed) {
-      setEmailError('Email is required');
+    const trimmedReference = reference.trim();
+    if (!trimmedReference) {
+      toast.error('Payment reference is required');
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
-
     setLoading(true);
     setSearched(true);
 
     try {
-      const { data } = await api.get(`/orders/track?email=${encodeURIComponent(trimmed)}`);
+      const { data } = await api.get('/orders/track', { params: { reference: trimmedReference } });
 
       if (data.success && data.orders && data.orders.length > 0) {
         setOrders(data.orders);
         toast.success(`Found ${data.orders.length} order(s)`);
       } else {
         setOrders([]);
-        toast.error('No orders found for this email');
+        toast.error('No order found for this payment reference');
       }
     } catch (error) {
       setOrders([]);
@@ -74,27 +84,26 @@ const GuestTrackOrder = () => {
             Track Your Order
           </h1>
           <p className="text-sm md:text-base font-medium text-slate-400">
-            Enter the email used during checkout to view your order status and details.
+            Enter your payment reference to view the specific order and its status.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="max-w-2xl">
           <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-            <label htmlFor="track-email" className="block text-sm font-bold text-slate-700 mb-2">Email Address *</label>
+            <label htmlFor="track-reference" className="block text-sm font-bold text-slate-700 mb-2">Payment Reference *</label>
+            <input
+              id="track-reference"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              placeholder="Payment reference"
+              className="w-full mb-3 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/5 transition-all outline-none font-medium text-slate-700 text-sm"
+            />
             <div className="flex flex-col sm:flex-row gap-3">
-              <input
-                id="track-email"
-                type="email"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-                onBlur={validateEmail}
-                placeholder="you@example.com"
-                className={`flex-1 px-4 py-3 rounded-xl bg-slate-50 border focus:bg-white focus:ring-4 focus:ring-sky-500/5 transition-all outline-none font-medium text-slate-700 text-sm ${emailError ? 'border-red-400 focus:border-red-400' : 'border-slate-200 focus:border-sky-500 focus:ring-sky-500/5'}`}
-              />
+              <div className="flex-1" />
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-sky-100 active:scale-95 disabled:opacity-60 whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-2 bg-linear-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 text-white font-bold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg shadow-sky-100 active:scale-95 disabled:opacity-60 whitespace-nowrap"
               >
                 {loading ? (
                   'Searching...'
@@ -106,9 +115,6 @@ const GuestTrackOrder = () => {
                 )}
               </button>
             </div>
-            {emailError && (
-              <p className="mt-2 text-red-500 text-xs font-semibold">{emailError}</p>
-            )}
           </div>
         </form>
 
@@ -125,7 +131,7 @@ const GuestTrackOrder = () => {
             </div>
             <h3 className="text-xl font-bold text-slate-900 mb-2">No orders found</h3>
             <p className="text-slate-500 max-w-md mx-auto mb-6">
-              We couldnt find any orders associated with this email. Please double-check your email and try again.
+              We couldnt find an order for this reference. Please double-check the reference and try again.
             </p>
           </div>
         )}
@@ -159,6 +165,7 @@ const GuestTrackOrder = () => {
                     <thead className="bg-slate-50/70">
                       <tr>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Order</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Reference</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Items</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Total</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
@@ -169,6 +176,7 @@ const GuestTrackOrder = () => {
                       {orders.map((order) => (
                         <tr key={order._id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="px-4 py-4 font-semibold text-slate-800">#{order._id.slice(-6)}</td>
+                          <td className="max-w-45 break-all px-4 py-4 text-sm text-slate-500">{order.reference}</td>
                           <td className="px-4 py-4 text-sm text-slate-600 space-y-1">
                             {order.items?.slice(0, 2).map((item) => (
                               <div key={`${order._id}-${item.product}`} className="flex flex-wrap gap-2 items-center">
@@ -213,6 +221,7 @@ const OrderCardMobile = ({ order }) => (
         </span>
       </div>
       <div className="text-sm text-slate-500 space-y-2">
+        <p className="break-all"><span className="font-semibold text-slate-700">Payment reference:</span> {order.reference}</p>
         <p>
           <span className="font-semibold text-slate-700">Items:</span>{' '}
           {order.items?.slice(0, 2).map((item, idx) => (

@@ -4,6 +4,11 @@ const { sendOrderStatusUpdateEmail } = require('../services/emailService');
 
 const ORDER_STATUSES = ['paid', 'processing', 'shipped', 'delivered', 'cancelled'];
 
+const normalizeReference = (value) => String(value || '')
+    .trim()
+    .replace(/^reference\s*:\s*/i, '')
+    .replace(/\s+/g, '');
+
 
 
 
@@ -45,25 +50,35 @@ const getMyOrders = async (req, res) => {
     }
 };
 
-const getOrdersByEmail = async (req, res) => {
+const getOrderByReference = async (req, res) => {
     try {
-        const { email } = req.query;
-
-        if (!email || !email.trim()) {
+        const reference = normalizeReference(req.params.reference || req.query.reference);
+        if (!reference || reference.length > 200) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide an email address to track your orders',
+                message: 'Please provide the payment reference to track this order',
             });
         }
 
-        const orders = await Order.find({ customerEmail: email.toLowerCase().trim() })
-            .sort({ createdAt: -1 })
-            .lean();
+        const order = await Order.findOne({ reference: { $regex: `^${reference.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } }).lean();
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'No order found for this payment reference' });
+        }
 
         res.status(200).json({
             success: true,
-            count: orders.length,
-            orders,
+            count: 1,
+            orders: [{
+                _id: order._id,
+                reference: order.reference,
+                items: order.items,
+                subtotal: order.subtotal,
+                deliveryFee: order.deliveryFee,
+                total: order.total,
+                status: order.status,
+                createdAt: order.createdAt,
+            }],
         });
     } catch (error) {
         res.status(500).json({
@@ -223,4 +238,4 @@ const getRevenueHistory = async (req, res) => {
     }
 };
 
-module.exports = { getOrders, getMyOrders, getOrdersByEmail, updateOrderStatus, getRevenue, getRevenueHistory };
+module.exports = { getOrders, getMyOrders, getOrderByReference, updateOrderStatus, getRevenue, getRevenueHistory };

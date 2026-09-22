@@ -327,8 +327,11 @@ const resetPassword = async (req, res) => {
     try {
         const { token, password } = req.body
 
-        if (!password) {
+        if (!password || typeof password !== 'string') {
             return res.status(400).json({ message: 'password is required' })
+        }
+        if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters and contain an uppercase letter and a number' })
         }
         if (!token) {
             return res.status(400).json({ message: 'token is required' })
@@ -617,6 +620,10 @@ const changeEmail = async (req, res) => {
         }
 
         const normalizedNewEmail = String(newEmail).trim().toLowerCase();
+
+        if (!/^\S+@\S+\.\S+$/.test(normalizedNewEmail)) {
+            return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+        }
 
         if (normalizedNewEmail === user.email.toLowerCase()) {
             return res.status(400).json({ success: false, message: 'New email must be different from current email' });

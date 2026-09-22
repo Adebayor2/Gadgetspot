@@ -90,18 +90,22 @@ const ResetPassword = () => {
               <FormField label='New Password' error={errors.password}>
                 <div className='relative'>
                   <FiLock className='absolute left-3.5 top-3.5 text-sky-400 h-5 w-5' />
-                   <input
-                     type={showPassword ? 'text' : 'password'}
-                     placeholder='Enter new password'
-                     {...register('password', {
-                       required: 'Password is required',
-                       minLength: {
-                         value: 8,
-                         message: 'Password must be at least 8 characters'
-                       }
-                     })}
-                     className={inputClass(errors.password, true)}
-                   />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder='Enter new password'
+                    {...register('password', {
+                      required: 'Password is required',
+                      minLength: {
+                        value: 8,
+                        message: 'Password must be at least 8 characters'
+                      },
+                      pattern: {
+                        value: /^(?=.*[A-Z])(?=.*[0-9]).*$/,
+                        message: 'Password must contain an uppercase letter and a number'
+                      }
+                    })}
+                    className={inputClass(errors.password, true)}
+                  />
                   <TogglePasswordButton
                     show={showPassword}
                     onToggle={() => setShowPassword((prev) => !prev)}
@@ -117,15 +121,15 @@ const ResetPassword = () => {
               <FormField label='Confirm New Password' error={errors.confirmPassword}>
                 <div className='relative'>
                   <FiLock className='absolute left-3.5 top-3.5 text-sky-400 h-5 w-5' />
-                   <input
-                     type={showConfirmPassword ? 'text' : 'password'}
-                     placeholder='Confirm new password'
-                     {...register('confirmPassword', {
-                       required: 'Please confirm your password',
-                       validate: (value) => value === watch('password') || 'Passwords do not match'
-                     })}
-                     className={inputClass(errors.confirmPassword, true)}
-                   />
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    placeholder='Confirm new password'
+                    {...register('confirmPassword', {
+                      required: 'Please confirm your password',
+                      validate: (value) => value === watch('password') || 'Passwords do not match'
+                    })}
+                    className={inputClass(errors.confirmPassword, true)}
+                  />
                   <TogglePasswordButton
                     show={showConfirmPassword}
                     onToggle={() => setShowConfirmPassword((prev) => !prev)}
@@ -137,7 +141,7 @@ const ResetPassword = () => {
               <button
                 type='submit'
                 disabled={isLoading}
-                className='w-full cursor-pointer bg-gradient-to-r from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-105 disabled:opacity-70 disabled:hover:scale-100 mt-4'
+                className='w-full cursor-pointer bg-linear-to-r from-sky-400 to-sky-500 hover:from-sky-500 hover:to-sky-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-300 hover:shadow-lg hover:scale-105 disabled:opacity-70 disabled:hover:scale-100 mt-4'
               >
                 {isLoading ? 'Resetting Password…' : 'Reset Password'}
               </button>

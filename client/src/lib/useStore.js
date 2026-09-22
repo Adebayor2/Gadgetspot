@@ -199,6 +199,24 @@ export const loadServerData = async () => {
   }
 };
 
+export const restoreSession = async () => {
+  if (!state.user || getAccessToken()) return Boolean(state.user && getAccessToken());
+
+  try {
+    const { data } = await api.get('/auth/refresh');
+    if (!data?.accessToken) throw new Error('No access token returned');
+    setAccessToken(data.accessToken);
+    await loadServerData();
+    return true;
+  } catch {
+    setAccessToken(null);
+    writeUser(null);
+    setState({ user: null, favorites: readGuestFavorites(), cart: readGuestCart() });
+    emit();
+    return false;
+  }
+};
+
 export const updateUser = (userData) => {
   const normalizedUser = normalizeUser({ ...state.user, ...userData });
   setState({ user: normalizedUser });
