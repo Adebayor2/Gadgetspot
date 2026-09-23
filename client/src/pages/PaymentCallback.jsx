@@ -18,12 +18,14 @@ const PaymentCallback = () => {
     if (verifiedReference.current === reference) return;
     verifiedReference.current = reference;
     const verify = async () => {
-      if (user) await restoreSession();
+      if (user && !(await restoreSession())) {
+        throw new Error('Your sign-in session has expired. Please sign in again to view this order.');
+      }
       return api.get(`/payments/verify/${encodeURIComponent(reference)}`);
     };
     verify()
       .then(async ({ data }) => {
-        await clearCart();
+        await clearCart({ skipAuthRefresh: true });
         const isAuthenticatedOrder = Boolean(data.order?.user);
         const destination = isAuthenticatedOrder
           ? '/user/orders'

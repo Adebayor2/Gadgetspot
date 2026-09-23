@@ -33,6 +33,10 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        if (originalRequest?.skipAuthRefresh) {
+            return Promise.reject(error);
+        }
+
         // Auth endpoints should NOT trigger token refresh or session-expired redirect
         const authEndpoints = ['/auth/login', '/auth/google-signin', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/auth/refresh'];
         const requestUrl = originalRequest?.url || '';

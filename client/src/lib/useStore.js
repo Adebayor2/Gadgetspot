@@ -411,7 +411,7 @@ export const updateQuantity = async (productId, quantity, color = '') => {
   emit();
 };
 
-export const clearCart = async () => {
+export const clearCart = async ({ skipAuthRefresh = false } = {}) => {
   setState({ cart: [] });
   persistGuestState();
   emit();
@@ -419,7 +419,7 @@ export const clearCart = async () => {
   if (!isAuthenticatedSession()) return;
 
   try {
-    await api.delete('/carts/clear');
+    await api.delete('/carts/clear', { skipAuthRefresh });
   } catch (error) {
     console.error('Failed to clear server cart', error);
   }
