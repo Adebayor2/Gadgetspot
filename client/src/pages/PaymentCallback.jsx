@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useStore } from '../lib/useStore';
-import api from '../lib/apiConfig';
+import { restoreSession, useStore } from '../lib/useStore';
+import api, { getAccessToken } from '../lib/apiConfig';
 
 const PaymentCallback = () => {
   const [searchParams] = useSearchParams();
@@ -17,15 +17,20 @@ const PaymentCallback = () => {
     if (!reference) return;
     if (verifiedReference.current === reference) return;
     verifiedReference.current = reference;
-    api.get(`/payments/verify/${encodeURIComponent(reference)}`)
-      .then(async ({ data }) => {
-        await clearCart({ skipAuthRefresh: true });
-        const isAuthenticatedOrder = Boolean(data.order?.user);
-        const destination = isAuthenticatedOrder
-          ? '/user/orders'
-          : `/guestorder?reference=${encodeURIComponent(data.order?.reference || reference)}`;
-        navigate(destination, { replace: true });
-      })
+    const verify = async () => {
+      if (user && !getAccessToken() && !(await restoreSession())) {
+        throw new Error('Your sign-in session has expired. Please sign in again to view this order.');
+      }
+
+      const { data } = await api.get(`/payments/verify/${encodeURIComponent(reference)}`, { skipAuthRefresh: true });
+      await clearCart({ skipAuthRefresh: true });
+      const isAuthenticatedOrder = Boolean(data.order?.user);
+      const destination = isAuthenticatedOrder
+        ? '/user/orders'
+        : `/guestorder?reference=${encodeURIComponent(data.order?.reference || reference)}`;
+      navigate(destination, { replace: true });
+    };
+    verify()
       .catch((error) => {
         verifiedReference.current = '';
         setResult({ loading: false, success: false, message: error.response?.data?.message || 'We could not verify this payment.' });

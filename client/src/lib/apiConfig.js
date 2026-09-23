@@ -4,6 +4,7 @@ import { errorToastOptions } from "./toastConfig";
 import { API_BASE_URL } from "./constants";
 import { logout } from "./useStore";
 let accessToken = null;
+let refreshPromise = null;
 
 export const setAccessToken = (token) => {
     accessToken = token;
@@ -52,12 +53,9 @@ api.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                const response = await axios.get(
-                    `${API_BASE_URL}/auth/refresh`,
-                    {
-                        withCredentials: true,
-                    },
-                );
+                refreshPromise ||= axios.get(`${API_BASE_URL}/auth/refresh`, { withCredentials: true });
+                const response = await refreshPromise;
+                refreshPromise = null;
                 const newAccessToken = response.data.accessToken;
                 setAccessToken(newAccessToken);
 
@@ -67,6 +65,7 @@ api.interceptors.response.use(
                 return api(originalRequest);
 
             } catch (refreshError) {
+                refreshPromise = null;
                 console.log("Refresh token expired. Logging out...");
                 toast.error("Session expired. Please login again.", errorToastOptions);
                 await axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true }).catch(() => undefined);

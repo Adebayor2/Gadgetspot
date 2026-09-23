@@ -6,15 +6,17 @@ import UserDashboardLayout from '../../components/user/UserDashboardLayout';
 import { useStore } from '../../lib/useStore';
 import api from '../../lib/apiConfig';
 
+const getProfileValue = (value) => value && value !== 'Not provided' ? value : '';
+
 const Checkout = () => {
   const { user, cart, clearCart } = useStore();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    customerName: user?.fullName || '',
-    customerEmail: user?.email || '',
-    customerPhone: user?.phone || '',
-    shippingAddress: user?.address || '',
+    customerName: getProfileValue(user?.fullName),
+    customerEmail: getProfileValue(user?.email),
+    customerPhone: getProfileValue(user?.phone),
+    shippingAddress: getProfileValue(user?.address),
     state: '',
     lga: '',
   });
@@ -146,7 +148,7 @@ const Checkout = () => {
   return (
     <UserDashboardLayout>
       <div className="min-h-screen bg-slate-50/70">
-         <div className="max-w-6xl mx-auto pt-4 pb-8 sm:pb-12 px-4">
+        <div className="max-w-6xl mx-auto pt-4 pb-8 sm:pb-12 px-4">
           <div className="flex items-center gap-4 mb-8">
             <button
               onClick={() => navigate(-1)}
