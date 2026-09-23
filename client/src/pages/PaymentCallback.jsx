@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { restoreSession, useStore } from '../lib/useStore';
+import { useStore } from '../lib/useStore';
 import api from '../lib/apiConfig';
 
 const PaymentCallback = () => {
@@ -17,13 +17,7 @@ const PaymentCallback = () => {
     if (!reference) return;
     if (verifiedReference.current === reference) return;
     verifiedReference.current = reference;
-    const verify = async () => {
-      if (user && !(await restoreSession())) {
-        throw new Error('Your sign-in session has expired. Please sign in again to view this order.');
-      }
-      return api.get(`/payments/verify/${encodeURIComponent(reference)}`);
-    };
-    verify()
+    api.get(`/payments/verify/${encodeURIComponent(reference)}`)
       .then(async ({ data }) => {
         await clearCart({ skipAuthRefresh: true });
         const isAuthenticatedOrder = Boolean(data.order?.user);

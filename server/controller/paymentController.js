@@ -177,10 +177,6 @@ const verifyPayment = async (req, res, next) => {
     const { reference } = req.params;
     if (!reference || reference.length > 200) return res.status(400).json({ success: false, message: 'Invalid payment reference' });
     const transaction = await verifyReference(reference);
-    const paymentUserId = String(transaction.metadata?.userId || '');
-    const userId = String(req.user?.id || req.user?._id || '');
-    if (paymentUserId && !userId) return res.status(401).json({ success: false, message: 'Sign in to verify this payment' });
-    if (paymentUserId && paymentUserId !== userId) return res.status(403).json({ success: false, message: 'This payment belongs to another user' });
     const order = await createPaidOrder(transaction);
     return res.status(200).json({ success: true, message: 'Payment verified', order });
   } catch (error) {

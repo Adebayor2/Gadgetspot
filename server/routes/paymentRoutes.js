@@ -5,7 +5,7 @@ const { initializePayment, verifyPayment, verifyGuestPayment, paystackWebhook } 
 
 router.post('/webhook', paystackWebhook)
 router.post('/initialize', optionalProtect, initializePayment)
-router.get('/verify/:reference', optionalProtect, verifyPayment)
+router.get('/verify/:reference', verifyPayment)
 router.get('/guest/verify/:reference', verifyGuestPayment)
 
 module.exports = router
