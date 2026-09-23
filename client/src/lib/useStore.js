@@ -117,6 +117,7 @@ let state = {
   favorites: readGuestFavorites(),
   cart: readGuestCart(),
 };
+let restorePromise = null;
 
 const listeners = new Set();
 
@@ -202,19 +203,27 @@ export const loadServerData = async () => {
 export const restoreSession = async () => {
   if (!state.user || getAccessToken()) return Boolean(state.user && getAccessToken());
 
-  try {
-    const { data } = await api.get('/auth/refresh');
-    if (!data?.accessToken) throw new Error('No access token returned');
-    setAccessToken(data.accessToken);
-    await loadServerData();
-    return true;
-  } catch {
-    setAccessToken(null);
-    writeUser(null);
-    setState({ user: null, favorites: readGuestFavorites(), cart: readGuestCart() });
-    emit();
-    return false;
-  }
+  if (restorePromise) return restorePromise;
+
+  restorePromise = (async () => {
+    try {
+      const { data } = await api.get('/auth/refresh');
+      if (!data?.accessToken) throw new Error('No access token returned');
+      setAccessToken(data.accessToken);
+      await loadServerData();
+      return true;
+    } catch {
+      setAccessToken(null);
+      writeUser(null);
+      setState({ user: null, favorites: readGuestFavorites(), cart: readGuestCart() });
+      emit();
+      return false;
+    } finally {
+      restorePromise = null;
+    }
+  })();
+
+  return restorePromise;
 };
 
 export const updateUser = (userData) => {

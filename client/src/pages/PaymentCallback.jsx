@@ -33,7 +33,7 @@ const PaymentCallback = () => {
     verify()
       .catch((error) => {
         verifiedReference.current = '';
-        setResult({ loading: false, success: false, message: error.response?.data?.message || 'We could not verify this payment.' });
+        setResult({ loading: false, success: false, message: error.response?.data?.message || error.message || 'We could not verify this payment.' });
       });
   }, [searchParams, user, clearCart, navigate]);
 
