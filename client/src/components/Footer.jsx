@@ -49,7 +49,7 @@ const Footer = ({ className = 'mt-20' }) => {
           <h1 className='font-bold'>Follow Us</h1>
           <ul className='mt-2 flex gap-4 '>
             <li>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook">
+              <a href="https://www.facebook.com/share/19kFn9XxDD/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook">
                 <FaFacebook className='h-5 w-5' />
               </a>
             </li>
