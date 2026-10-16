@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi'
 import { toast } from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
@@ -19,6 +19,8 @@ const SignIn = () => {
   const [isLoading, setIsLoading] = useState(false)
   const { setUser } = useStore()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get('redirect') === '/checkout' ? '/checkout' : '/dashboard'
 
   const {
     register,
@@ -54,7 +56,7 @@ const SignIn = () => {
       if (user.role === 'admin') {
         navigate('/admin/dashboard')
       } else {
-        navigate('/dashboard')
+        navigate(redirectTo)
       }
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || 'Unable to sign in. Please try again.';
@@ -86,7 +88,7 @@ const SignIn = () => {
       if (user.role === 'admin') {
         navigate('/admin/dashboard')
       } else {
-        navigate('/dashboard')
+        navigate(redirectTo)
       }
     } catch (error) {
       // Don't show error if user simply closed the popup

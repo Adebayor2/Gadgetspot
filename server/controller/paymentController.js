@@ -3,14 +3,14 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Order = require('../models/orderModel');
 const Product = require('../models/productModel');
-const { getDeliveryFee } = require('../data/deliveryFees');
+const { PICKUP_ADDRESS, getDeliveryFee } = require('../services/deliverySettingsService');
 const { sendOrderConfirmationEmail } = require('../services/emailService');
 
 const paystackSecretKey = () => process.env.PAYSTACK_SECRET_KEY;
 const paystackHeaders = () => ({ Authorization: `Bearer ${paystackSecretKey()}` });
 const normalizePaymentReference = (reference) => String(reference || '').trim();
 
-const validAddress = (address = {}) => (
+const validDeliveryAddress = (address = {}) => (
   address && typeof address === 'object' &&
   typeof address.line1 === 'string' && address.line1.trim().length >= 5 &&
   typeof address.state === 'string' && address.state.trim() &&
@@ -49,11 +49,15 @@ const createPaidOrder = async (transaction) => {
   const paymentReference = normalizePaymentReference(transaction.reference);
   const metadata = transaction.metadata || {};
   const items = metadata.items;
+  const fulfillmentType = metadata.fulfillmentType || 'delivery';
   const address = metadata.address;
   const deliveryFee = Number(metadata.deliveryFee);
   const subtotal = Number(metadata.subtotal);
 
-  if (!validAddress(address) || !Array.isArray(items) || !Number.isFinite(deliveryFee) || !Number.isFinite(subtotal)) {
+  if (!['delivery', 'pickup'].includes(fulfillmentType) ||
+      (fulfillmentType === 'delivery' && !validDeliveryAddress(address)) ||
+      (fulfillmentType === 'pickup' && (deliveryFee !== 0 || address?.line1 !== PICKUP_ADDRESS)) ||
+      !Array.isArray(items) || !Number.isFinite(deliveryFee) || !Number.isFinite(subtotal)) {
     throw new Error('Payment metadata is incomplete');
   }
 
@@ -70,6 +74,7 @@ const createPaidOrder = async (transaction) => {
     order = await Order.create({
       user: metadata.userId || null,
       items,
+      fulfillmentType,
       deliveryFee,
       address,
       amountPaid: transaction.amount / 100,
@@ -146,26 +151,34 @@ const verifyReference = async (reference) => {
 const initializePayment = async (req, res, next) => {
   try {
     const { email, items, address, customerName, customerPhone } = req.body;
+    const fulfillmentType = req.body.fulfillmentType || 'delivery';
     const userId = req.user?.id || req.user?._id;
-    if (!/^\S+@\S+\.\S+$/.test(email || '') || !validAddress(address) || !customerName?.trim() || !customerPhone?.trim()) {
-      return res.status(400).json({ success: false, message: 'Provide valid contact, address, state and LGA details' });
+    if (!['delivery', 'pickup'].includes(fulfillmentType) ||
+        !/^\S+@\S+\.\S+$/.test(email || '') ||
+        (fulfillmentType === 'delivery' && !validDeliveryAddress(address)) ||
+        !customerName?.trim() || !customerPhone?.trim()) {
+      return res.status(400).json({ success: false, message: 'Provide valid contact details and delivery address, or choose store pickup' });
     }
     if (!paystackSecretKey()) return res.status(500).json({ success: false, message: 'Paystack is not configured.' });
 
     const orderItems = await buildOrderItems(items);
     const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const deliveryFee = getDeliveryFee(address.state, address.lga);
+    const orderAddress = fulfillmentType === 'pickup'
+      ? { line1: PICKUP_ADDRESS, state: '', lga: '' }
+      : { line1: address.line1.trim(), state: address.state.trim(), lga: address.lga.trim() };
+    const deliveryFee = fulfillmentType === 'pickup' ? 0 : await getDeliveryFee(orderAddress.state, orderAddress.lga);
     const amount = Math.round((subtotal + deliveryFee) * 100);
 
     const response = await axios.post('https://api.paystack.co/transaction/initialize', {
       email: email.trim().toLowerCase(),
       amount,
       callback_url: `${process.env.CLIENT_URL}/payment/callback`,
-      metadata: { ...(userId && { userId: String(userId) }), items: orderItems, deliveryFee, subtotal, address, customerName: customerName.trim(), customerEmail: email.trim().toLowerCase(), customerPhone: customerPhone.trim() },
+      metadata: { ...(userId && { userId: String(userId) }), items: orderItems, fulfillmentType, deliveryFee, subtotal, address: orderAddress, customerName: customerName.trim(), customerEmail: email.trim().toLowerCase(), customerPhone: customerPhone.trim() },
     }, { headers: { ...paystackHeaders(), 'Content-Type': 'application/json' } });
 
     return res.status(200).json({ success: true, data: response.data.data });
   } catch (error) {
+    if (error.statusCode) return res.status(error.statusCode).json({ success: false, message: error.message });
     if (error.message?.includes('cart item') || error.message?.includes('products')) return res.status(400).json({ success: false, message: error.message });
     if (error.response?.data?.message) return res.status(502).json({ success: false, message: error.response.data.message });
     return next(error);

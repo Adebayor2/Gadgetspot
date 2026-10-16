@@ -265,8 +265,8 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
                     <span>₦${Number(order.subtotal || 0).toLocaleString()}</span>
                   </div>
                   <div style="display:flex;justify-content:space-between;font-size:14px;color:#475569;margin-bottom:8px;">
-                    <span>Delivery Fee</span>
-                    <span>₦${Number(order.deliveryFee || 0).toLocaleString()}</span>
+                    <span>${order.fulfillmentType === 'pickup' ? 'Store pickup' : 'Delivery Fee'}</span>
+                    <span>${order.fulfillmentType === 'pickup' ? 'Free' : `₦${Number(order.deliveryFee || 0).toLocaleString()}`}</span>
                   </div>
                   <div style="border-top:1px solid #e2e8f0;padding-top:8px;display:flex;justify-content:space-between;font-size:16px;color:#0f4c81;font-weight:bold;">
                     <span>Total Paid</span>
@@ -275,7 +275,7 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
                 </div>
 
                 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px;">
-                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Shipping Address:</strong></p>
+                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>${order.fulfillmentType === 'pickup' ? 'Store Pickup Location:' : 'Shipping Address:'}</strong></p>
                   <p style="margin:0;font-size:14px;color:#1e293b;">${order.shippingAddress || order.address?.line1 || '—'}</p>
                   <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${order.address?.state || ''} ${order.address?.lga ? ', ' + order.address.lga : ''}</p>
                 </div>
@@ -372,8 +372,8 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
                     <span>₦${Number(order.subtotal || 0).toLocaleString()}</span>
                   </div>
                   <div style="display:flex;justify-content:space-between;font-size:14px;color:#475569;margin-bottom:8px;">
-                    <span>Delivery Fee</span>
-                    <span>₦${Number(order.deliveryFee || 0).toLocaleString()}</span>
+                    <span>${order.fulfillmentType === 'pickup' ? 'Store pickup' : 'Delivery Fee'}</span>
+                    <span>${order.fulfillmentType === 'pickup' ? 'Free' : `₦${Number(order.deliveryFee || 0).toLocaleString()}`}</span>
                   </div>
                   <div style="border-top:1px solid #e2e8f0;padding-top:8px;display:flex;justify-content:space-between;font-size:16px;color:#0f4c81;font-weight:bold;">
                     <span>Total</span>
@@ -382,7 +382,7 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
                 </div>
 
                 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px;">
-                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Shipping Address:</strong></p>
+                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>${order.fulfillmentType === 'pickup' ? 'Store Pickup Location:' : 'Shipping Address:'}</strong></p>
                   <p style="margin:0;font-size:14px;color:#1e293b;">${order.shippingAddress || order.address?.line1 || '—'}</p>
                   <p style="margin:4px 0 0;font-size:14px;color:#1e293b;">${order.address?.state || ''} ${order.address?.lga ? ', ' + order.address.lga : ''}</p>
                 </div>

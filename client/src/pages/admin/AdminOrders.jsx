@@ -134,6 +134,7 @@ const AdminOrders = () => {
                                             <div>
                                                 <p className="font-semibold text-slate-800">{order.customerName}</p>
                                                 <p className="text-sm text-slate-400">{order.customerEmail}</p>
+                                                <p className="mt-1 text-xs font-semibold text-sky-600">{order.fulfillmentType === 'pickup' ? 'Store pickup' : 'Delivery'}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -203,12 +204,12 @@ const AdminOrders = () => {
                                     </div>
                                 </div>
 
-                                {/* Delivery Address */}
+                                {/* Fulfillment Details */}
                                 <div className="mb-6">
-                                    <h3 className="text-lg font-bold text-slate-800 mb-3">Delivery Address</h3>
+                                    <h3 className="text-lg font-bold text-slate-800 mb-3">{selectedOrder.fulfillmentType === 'pickup' ? 'Store Pickup' : 'Delivery Address'}</h3>
                                     <div className="bg-slate-50 rounded-2xl p-4">
                                         <p className="text-sm text-slate-600">{selectedOrder.shippingAddress || selectedOrder.address?.line1 || '—'}</p>
-                                        <p className="text-sm text-slate-500 mt-1">{selectedOrder.address?.state || ''}{selectedOrder.address?.lga ? ', ' + selectedOrder.address.lga : ''}</p>
+                                        {selectedOrder.fulfillmentType !== 'pickup' && <p className="text-sm text-slate-500 mt-1">{selectedOrder.address?.state || ''}{selectedOrder.address?.lga ? ', ' + selectedOrder.address.lga : ''}</p>}
                                     </div>
                                 </div>
 
@@ -251,8 +252,8 @@ const AdminOrders = () => {
                                             <span>₦{Number(selectedOrder.subtotal || 0).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between text-sm text-slate-600">
-                                            <span>Delivery Fee</span>
-                                            <span>₦{Number(selectedOrder.deliveryFee || 0).toLocaleString()}</span>
+                                            <span>{selectedOrder.fulfillmentType === 'pickup' ? 'Store pickup' : 'Delivery Fee'}</span>
+                                            <span>{selectedOrder.fulfillmentType === 'pickup' ? 'Free' : `₦${Number(selectedOrder.deliveryFee || 0).toLocaleString()}`}</span>
                                         </div>
                                         <div className="flex justify-between text-base font-bold text-slate-800 pt-2 border-t border-slate-200">
                                             <span>Total</span>

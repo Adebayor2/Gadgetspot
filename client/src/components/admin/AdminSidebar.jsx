@@ -13,7 +13,8 @@ import {
   FiLogOut,
   FiX,
   FiShoppingBag,
-  FiDollarSign
+  FiDollarSign,
+  FiTruck,
 } from 'react-icons/fi';
 
 const AdminSidebar = ({ isOpen, toggleSidebar }) => {
@@ -32,6 +33,7 @@ const AdminSidebar = ({ isOpen, toggleSidebar }) => {
     { name: 'Products', path: '/admin/products', icon: <FiBox /> },
     { name: 'Orders', path: '/admin/orders', icon: <FiShoppingBag /> },
     { name: 'Categories', path: '/admin/categories', icon: <FiTag /> },
+    { name: 'Delivery Fees', path: '/admin/delivery-fees', icon: <FiTruck /> },
     { name: 'Customers', path: '/admin/users', icon: <FiUsers /> },
     { name: 'Profile', path: '/admin/profile', icon: <FiUser /> },
     { name: 'Settings', path: '/admin/settings', icon: <FiSettings /> },
@@ -110,4 +112,3 @@ const AdminSidebar = ({ isOpen, toggleSidebar }) => {
 };
 
 export default AdminSidebar;
-
