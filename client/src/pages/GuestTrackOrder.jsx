@@ -6,6 +6,7 @@ import api from '../lib/apiConfig';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Loader from '../components/Loader';
+import { getOrderStatus, getPaymentStatus, getPaymentStatusClasses } from '../lib/orderStatus';
 
 const GuestTrackOrder = () => {
   const [searchParams] = useSearchParams();
@@ -142,7 +143,7 @@ const GuestTrackOrder = () => {
               <MetricCard label="Total Orders" value={orders.length} icon={<FiPackage />} />
               <MetricCard
                 label="Pending"
-                value={orders.filter((o) => o.status === 'pending').length}
+                value={orders.filter((order) => getOrderStatus(order) === 'pending').length}
                 icon={<FiSearch />}
               />
               <MetricCard
@@ -168,7 +169,8 @@ const GuestTrackOrder = () => {
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Reference</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Items</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Total</th>
-                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Status</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Order Status</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Date</th>
                       </tr>
                     </thead>
@@ -190,8 +192,13 @@ const GuestTrackOrder = () => {
                           </td>
                           <td className="px-4 py-4 font-semibold text-slate-800">₦{Number(order.total || 0).toLocaleString()}</td>
                           <td className="px-4 py-4">
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(order.status)}`}>
-                              {order.status || 'pending'}
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getPaymentStatusClasses(getPaymentStatus(order))}`}>
+                              {getPaymentStatus(order)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(getOrderStatus(order))}`}>
+                              {getOrderStatus(order)}
                             </span>
                           </td>
                           <td className="px-4 py-4 text-sm text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>
@@ -216,9 +223,14 @@ const OrderCardMobile = ({ order }) => (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-4">
         <p className="text-sm font-semibold text-slate-700">Order #{order._id.slice(-6)}</p>
-        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(order.status)}`}>
-          {order.status || 'pending'}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getPaymentStatusClasses(getPaymentStatus(order))}`}>
+            Payment: {getPaymentStatus(order)}
+          </span>
+          <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(getOrderStatus(order))}`}>
+            Order: {getOrderStatus(order)}
+          </span>
+        </div>
       </div>
       <div className="text-sm text-slate-500 space-y-2">
         <p className="break-all"><span className="font-semibold text-slate-700">Payment reference:</span> {order.reference}</p>

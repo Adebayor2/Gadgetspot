@@ -2,7 +2,15 @@ const Order = require('../models/orderModel');
 const mongoose = require('mongoose');
 const { sendOrderStatusUpdateEmail } = require('../services/emailService');
 
-const ORDER_STATUSES = ['paid', 'processing', 'shipped', 'delivered', 'cancelled'];
+const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+const LEGACY_PAID_ORDER_STATUSES = ['paid', 'processing', 'shipped', 'delivered', 'cancelled'];
+const LEGACY_REVENUE_ORDER_STATUSES = ['paid', 'processing', 'shipped', 'delivered'];
+
+const getPaymentStatus = (order) => {
+    if (order.paymentStatus) return order.paymentStatus;
+    if (order.status === 'failed') return 'failed';
+    return LEGACY_PAID_ORDER_STATUSES.includes(order.status) ? 'paid' : 'pending';
+};
 
 const normalizeReference = (value) => String(value || '')
     .trim()
@@ -76,7 +84,8 @@ const getOrderByReference = async (req, res) => {
                 subtotal: order.subtotal,
                 deliveryFee: order.deliveryFee,
                 total: order.total,
-                status: order.status,
+                status: order.status === 'paid' ? 'pending' : order.status,
+                paymentStatus: getPaymentStatus(order),
                 createdAt: order.createdAt,
             }],
         });
@@ -111,7 +120,8 @@ const updateOrderStatus = async (req, res) => {
                 name: recipientName,
                 order: {
                     reference: order.reference,
-                    status: order.status,
+                    status: order.status === 'paid' ? 'pending' : order.status,
+                    paymentStatus: getPaymentStatus(order),
                     items: order.items,
                     subtotal: order.subtotal,
                     deliveryFee: order.deliveryFee,
@@ -155,7 +165,10 @@ const getRevenue = async (req, res) => {
 
         const orders = await Order.find({
             createdAt: { $gte: start, $lte: end },
-            status: { $in: ['paid', 'processing', 'shipped', 'delivered'] },
+            $or: [
+                { paymentStatus: 'paid' },
+                { paymentStatus: { $exists: false }, status: { $in: LEGACY_REVENUE_ORDER_STATUSES } },
+            ],
         }).sort({ createdAt: -1 });
 
         const totalRevenue = orders.reduce((sum, order) => sum + Number(order.subtotal || 0), 0);
@@ -166,7 +179,8 @@ const getRevenue = async (req, res) => {
             reference: order.reference,
             customerName: order.customerName,
             customerEmail: order.customerEmail,
-            status: order.status,
+            status: order.status === 'paid' ? 'pending' : order.status,
+            paymentStatus: getPaymentStatus(order),
             subtotal: Number(order.subtotal || 0),
             deliveryFee: Number(order.deliveryFee || 0),
             total: Number(order.total || 0),
@@ -193,7 +207,10 @@ const getRevenue = async (req, res) => {
 const getRevenueHistory = async (req, res) => {
     try {
         const orders = await Order.find({
-            status: { $in: ['paid', 'processing', 'shipped', 'delivered'] },
+            $or: [
+                { paymentStatus: 'paid' },
+                { paymentStatus: { $exists: false }, status: { $in: LEGACY_REVENUE_ORDER_STATUSES } },
+            ],
         }).sort({ createdAt: -1 });
 
         const monthlyMap = new Map();

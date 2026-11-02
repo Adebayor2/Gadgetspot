@@ -5,6 +5,7 @@ import StatCard from '../../components/admin/StatCard';
 import { FiBox, FiShoppingBag, FiUsers, FiDollarSign } from 'react-icons/fi';
 import Loader from '../../components/Loader';
 import api from '../../lib/apiConfig';
+import { getOrderStatus, getPaymentStatus, getPaymentStatusClasses } from '../../lib/orderStatus';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -52,7 +53,7 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
 
-  const paidOrders = useMemo(() => orders.filter((order) => ['paid', 'processing', 'shipped', 'delivered'].includes(order.status)), [orders]);
+  const paidOrders = useMemo(() => orders.filter((order) => getPaymentStatus(order) === 'paid'), [orders]);
   const totalRevenue = useMemo(() => paidOrders.reduce((sum, order) => sum + Number(order.subtotal || 0), 0), [paidOrders]);
 
   const stats = [
@@ -99,13 +100,14 @@ const AdminDashboard = () => {
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Customer</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Reference</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Amount</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Status</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Payment Status</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase">Order Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-8">
+                    <td colSpan={5} className="px-6 py-8">
                       <div className="flex items-center justify-center">
                         <Loader text="Loading orders..." size="sm" />
                       </div>
@@ -113,7 +115,7 @@ const AdminDashboard = () => {
                   </tr>
                 ) : orders.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-slate-400">No orders yet.</td>
+                    <td colSpan={5} className="px-6 py-8 text-center text-slate-400">No orders yet.</td>
                   </tr>
                 ) : (
                   orders.slice(0, 5).map((order) => (
@@ -125,7 +127,14 @@ const AdminDashboard = () => {
                       <td className="px-6 py-4 text-sm text-slate-500">{order.reference || '—'}</td>
                       <td className="px-6 py-4 font-bold text-slate-700">₦{Number(order.amountPaid || order.total || 0).toLocaleString()}</td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${order.status === 'paid' || order.status === 'pending' ? 'bg-amber-50 text-amber-600' : order.status === 'processing' ? 'bg-sky-50 text-sky-600' : order.status === 'shipped' ? 'bg-indigo-50 text-indigo-600' : order.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : order.status === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>{order.status}</span>
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${getPaymentStatusClasses(getPaymentStatus(order))}`}>
+                          {getPaymentStatus(order)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase ${getOrderStatus(order) === 'processing' ? 'bg-sky-50 text-sky-600' : getOrderStatus(order) === 'shipped' ? 'bg-indigo-50 text-indigo-600' : getOrderStatus(order) === 'delivered' ? 'bg-emerald-50 text-emerald-600' : getOrderStatus(order) === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                          {getOrderStatus(order)}
+                        </span>
                       </td>
                     </tr>
                   ))

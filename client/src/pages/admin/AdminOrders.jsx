@@ -3,10 +3,10 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import api from '../../lib/apiConfig';
 import Loader from '../../components/Loader';
 import { toast } from 'react-hot-toast';
+import { getOrderStatus, getPaymentStatus, getPaymentStatusClasses } from '../../lib/orderStatus';
 import { FiPackage, FiClock, FiCheckCircle, FiTruck, FiXCircle, FiRefreshCw, FiEye, FiX as FiClose } from 'react-icons/fi';
 
 const statusStyles = {
-    paid: 'bg-amber-50 text-amber-600',
     pending: 'bg-amber-50 text-amber-600',
     processing: 'bg-sky-50 text-sky-600',
     shipped: 'bg-indigo-50 text-indigo-600',
@@ -90,7 +90,7 @@ const AdminOrders = () => {
                             <p className="text-sm font-semibold text-slate-500">Pending</p>
                             <FiClock className="text-amber-400" />
                         </div>
-                        <p className="mt-4 text-3xl font-black text-slate-900">{orders.filter((order) => order.status === 'pending').length}</p>
+                        <p className="mt-4 text-3xl font-black text-slate-900">{orders.filter((order) => getOrderStatus(order) === 'pending').length}</p>
                     </div>
                     <div className="rounded-3xl border border-amber-100 bg-amber-50/50 p-6 shadow-sm">
                         <div className="flex items-center justify-between">
@@ -109,7 +109,8 @@ const AdminOrders = () => {
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Customer</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Items</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Total</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Status</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Order Status</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Update</th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">View</th>
                                 </tr>
@@ -117,7 +118,7 @@ const AdminOrders = () => {
                             <tbody className="divide-y divide-slate-50">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-10">
+                                        <td colSpan="7" className="px-6 py-10">
                                           <div className="flex items-center justify-center">
                                             <Loader text="Loading orders..." size="sm" />
                                           </div>
@@ -125,7 +126,7 @@ const AdminOrders = () => {
                                     </tr>
                                 ) : orders.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-10 text-center text-slate-400">No orders found yet.</td>
+                                        <td colSpan="7" className="px-6 py-10 text-center text-slate-400">No orders found yet.</td>
                                     </tr>
                                 ) : (
                                     orders.map((order) => (
@@ -149,13 +150,18 @@ const AdminOrders = () => {
                                         </td>
                                         <td className="px-6 py-4 font-semibold text-slate-800">₦{Number(order.total || 0).toLocaleString()}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${statusStyles[order.status] || 'bg-slate-100 text-slate-600'}`}>
-                                                {order.status || 'pending'}
+                                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getPaymentStatusClasses(getPaymentStatus(order))}`}>
+                                                {getPaymentStatus(order)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <select value={order.status || 'paid'} disabled={updatingId === order._id} onChange={(event) => updateStatus(order._id, event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-amber-400 disabled:opacity-60">
-                                                <option value="paid">Paid</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option>
+                                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${statusStyles[getOrderStatus(order)] || 'bg-slate-100 text-slate-600'}`}>
+                                                {getOrderStatus(order)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <select value={getOrderStatus(order)} disabled={updatingId === order._id} onChange={(event) => updateStatus(order._id, event.target.value)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 outline-none focus:border-amber-400 disabled:opacity-60">
+                                                <option value="pending">Pending</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option>
                                             </select>
                                         </td>
                                         <td className="px-6 py-4">
@@ -262,10 +268,13 @@ const AdminOrders = () => {
                                 </div>
 
                                 {/* Status & Date */}
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${statusStyles[selectedOrder.status] || 'bg-slate-100 text-slate-600'}`}>
-                                            {selectedOrder.status || 'pending'}
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getPaymentStatusClasses(getPaymentStatus(selectedOrder))}`}>
+                                            Payment: {getPaymentStatus(selectedOrder)}
+                                        </span>
+                                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${statusStyles[getOrderStatus(selectedOrder)] || 'bg-slate-100 text-slate-600'}`}>
+                                            Order: {getOrderStatus(selectedOrder)}
                                         </span>
                                     </div>
                                     <p className="text-sm text-slate-500">

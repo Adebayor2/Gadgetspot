@@ -242,7 +242,8 @@ async function sendOrderConfirmationEmail({ to, name, order }) {
 
                 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px;">
                   <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Order Reference:</strong> ${order.reference || '—'}</p>
-                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Status:</strong> <span style="text-transform:capitalize;">${order.status || 'paid'}</span></p>
+                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Payment Status:</strong> <span style="text-transform:capitalize;">${order.paymentStatus || 'paid'}</span></p>
+                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Order Status:</strong> <span style="text-transform:capitalize;">${order.status || 'pending'}</span></p>
                   <p style="margin:0;font-size:14px;color:#475569;"><strong>Date:</strong> ${formattedDate}</p>
                 </div>
 
@@ -349,6 +350,7 @@ async function sendOrderStatusUpdateEmail({ to, name, order }) {
 
                 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:20px;">
                   <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Order Reference:</strong> ${order.reference || '—'}</p>
+                  <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>Payment Status:</strong> <span style="text-transform:capitalize;">${order.paymentStatus || 'paid'}</span></p>
                   <p style="margin:0 0 8px;font-size:14px;color:#475569;"><strong>New Status:</strong> <span style="text-transform:capitalize;font-weight:bold;">${statusLabel}</span></p>
                   <p style="margin:0;font-size:14px;color:#475569;"><strong>Date:</strong> ${formattedDate}</p>
                 </div>

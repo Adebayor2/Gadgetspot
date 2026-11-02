@@ -3,6 +3,7 @@ import { FiPackage, FiClock, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import UserDashboardLayout from '../../components/user/UserDashboardLayout';
 import api from '../../lib/apiConfig';
 import Loader from '../../components/Loader';
+import { getOrderStatus, getPaymentStatus, getPaymentStatusClasses } from '../../lib/orderStatus';
 
 const Orders = () => {
     const [orders, setOrders] = useState([]);
@@ -25,7 +26,7 @@ const Orders = () => {
     }, []);
 
     const totalSpent = orders.reduce((total, order) => total + Number(order.amountPaid || order.total || 0), 0);
-    const pendingCount = orders.filter((order) => order.status === 'pending').length;
+    const pendingCount = orders.filter((order) => getOrderStatus(order) === 'pending').length;
     const deliveredCount = orders.filter((order) => order.status === 'delivered').length;
 
     return (
@@ -58,9 +59,14 @@ const Orders = () => {
                                     <div className="flex flex-col gap-3">
                                         <div className="flex items-center justify-between gap-4">
                                             <p className="text-sm font-semibold text-slate-700">Order #{order._id.slice(-6)}</p>
-                                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(order.status)}`}>
-                                                {order.status || 'pending'}
-                                            </span>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getPaymentStatusClasses(getPaymentStatus(order))}`}>
+                                                    Payment: {getPaymentStatus(order)}
+                                                </span>
+                                                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(getOrderStatus(order))}`}>
+                                                    Order: {getOrderStatus(order)}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="text-sm text-slate-500 space-y-2">
                                             <p className="break-all">
@@ -96,14 +102,15 @@ const Orders = () => {
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Order</th>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Items</th>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Total</th>
-                                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
+                                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Status</th>
+                                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Order Status</th>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Date</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="5" className="px-4 py-10">
+                                            <td colSpan="6" className="px-4 py-10">
                                                 <div className="flex items-center justify-center">
                                                     <Loader text="Loading orders..." size="sm" />
                                                 </div>
@@ -111,7 +118,7 @@ const Orders = () => {
                                         </tr>
                                     ) : orders.length === 0 ? (
                                         <tr>
-                                            <td colSpan="5" className="px-4 py-10 text-center text-slate-400">
+                                            <td colSpan="6" className="px-4 py-10 text-center text-slate-400">
                                                 You have no orders yet.
                                             </td>
                                         </tr>
@@ -135,8 +142,13 @@ const Orders = () => {
                                                 </td>
                                                 <td className="px-4 py-4 font-semibold text-slate-800">₦{Number(order.total || 0).toLocaleString()}</td>
                                                 <td className="px-4 py-4">
-                                                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(order.status)}`}>
-                                                        {order.status || 'pending'}
+                                                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getPaymentStatusClasses(getPaymentStatus(order))}`}>
+                                                        {getPaymentStatus(order)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-4">
+                                                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClasses(getOrderStatus(order))}`}>
+                                                        {getOrderStatus(order)}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm text-slate-500">{new Date(order.createdAt).toLocaleDateString()}</td>

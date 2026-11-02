@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { useStore } from '../../lib/useStore';
+import logoutUser from '../../lib/logOut';
 import {
   FiHome,
   FiShoppingBag,
@@ -7,6 +9,7 @@ import {
   FiUser,
   FiShoppingCart,
   FiHeart,
+  FiLogOut,
 } from 'react-icons/fi';
 
 const navItems = [
@@ -20,6 +23,12 @@ const navItems = [
 
 const UserDashboardLayout = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { logout } = useStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logoutUser({ logout, navigate });
+  };
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -50,6 +59,14 @@ const UserDashboardLayout = ({ children }) => {
             </NavLink>
           ))}
         </nav>
+
+        <button
+          onClick={handleLogout}
+          className="absolute right-8 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-500"
+        >
+          <FiLogOut />
+          <span>Logout</span>
+        </button>
       </header>
 
       {/* Mobile Header */}
@@ -95,6 +112,13 @@ const UserDashboardLayout = ({ children }) => {
                 <span>{item.name}</span>
               </NavLink>
             ))}
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-500 transition-colors hover:bg-red-50 hover:text-red-500"
+            >
+              <FiLogOut className="text-lg" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       )}

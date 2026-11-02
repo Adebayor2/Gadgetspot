@@ -133,7 +133,8 @@ const AdminRevenue = () => {
                             <th>Date</th>
                             <th>Reference</th>
                             <th>Customer</th>
-                            <th>Status</th>
+                            <th>Payment Status</th>
+                            <th>Order Status</th>
                             <th>Subtotal</th>
                             <th>Delivery</th>
                             <th>Total</th>
@@ -145,7 +146,8 @@ const AdminRevenue = () => {
                                 <td>${formatDate(order.createdAt)}</td>
                                 <td>${order.reference || '—'}</td>
                                 <td>${order.customerName}<br/><span style="color:#64748b;font-size:11px;">${order.customerEmail}</span></td>
-                                <td style="text-transform: capitalize;">${order.status}</td>
+                                <td style="text-transform: capitalize;">${order.paymentStatus}</td>
+                                <td style="text-transform: capitalize;">${order.status || 'pending'}</td>
                                 <td>${formatCurrency(order.subtotal)}</td>
                                 <td>${formatCurrency(order.deliveryFee)}</td>
                                 <td>${formatCurrency(order.total)}</td>
@@ -240,7 +242,8 @@ const AdminRevenue = () => {
                                         <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase">Date</th>
                                         <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase">Reference</th>
                                         <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase">Customer</th>
-                                        <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase">Status</th>
+                                        <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase">Payment Status</th>
+                                        <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase">Order Status</th>
                                         <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase text-right">Subtotal</th>
                                         <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase text-right">Delivery</th>
                                         <th className="px-4 py-3 text-xs font-bold text-slate-400 uppercase text-right">Total</th>
@@ -249,14 +252,14 @@ const AdminRevenue = () => {
                                 <tbody className="divide-y divide-slate-50">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="7" className="px-4 py-8">
+                                            <td colSpan="8" className="px-4 py-8">
                                                 <div className="flex items-center justify-center">
                                                     <Loader text="Loading revenue data..." size="sm" />
                                                 </div>
                                             </td>
                                         </tr>
                                     ) : !revenueData || revenueData.breakdown.length === 0 ? (
-                                        <tr><td colSpan="7" className="px-4 py-8 text-center text-slate-400">No orders found for this month.</td></tr>
+                                        <tr><td colSpan="8" className="px-4 py-8 text-center text-slate-400">No orders found for this month.</td></tr>
                                     ) : (
                                         revenueData.breakdown.map((order) => (
                                             <tr key={order._id} className="hover:bg-slate-50/50 transition-colors">
@@ -268,7 +271,12 @@ const AdminRevenue = () => {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-600">
-                                                        {order.status}
+                                                        {order.paymentStatus}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${order.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : order.status === 'processing' ? 'bg-sky-50 text-sky-600' : order.status === 'shipped' ? 'bg-indigo-50 text-indigo-600' : order.status === 'cancelled' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                        {order.status || 'pending'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-slate-700 text-right font-medium">{formatCurrency(order.subtotal)}</td>
