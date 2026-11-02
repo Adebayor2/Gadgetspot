@@ -17,6 +17,7 @@ import AdminProducts from './pages/admin/AdminProducts'
 import AdminOrders from './pages/admin/AdminOrders'
 import AdminRevenue from './pages/admin/AdminRevenue'
 import AdminCategories from './pages/admin/AdminCategories'
+import AdminDeliveryFees from './pages/admin/AdminDeliveryFees'
 import AdminUsers from './pages/admin/AdminUsers'
 import Settings from './pages/admin/Settings'
 import Profile from './pages/admin/Profile'
@@ -147,6 +148,11 @@ const App = () => {
           <Route path="/admin/categories" element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminCategories />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/delivery-fees" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminDeliveryFees />
             </ProtectedRoute>
           } />
           <Route path="/admin/users" element={

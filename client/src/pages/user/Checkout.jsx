@@ -1,15 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiLock, FiArrowLeft } from 'react-icons/fi';
+import { FiLock, FiArrowLeft, FiTruck } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
 import UserDashboardLayout from '../../components/user/UserDashboardLayout';
 import { useStore } from '../../lib/useStore';
 import api from '../../lib/apiConfig';
+import useDeliveryOptions from '../../lib/useDeliveryOptions';
 
 const getProfileValue = (value) => value && value !== 'Not provided' ? value : '';
 
 const Checkout = () => {
-  const { user, cart, clearCart } = useStore();
+  const { user, cart } = useStore();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -19,26 +20,15 @@ const Checkout = () => {
     shippingAddress: getProfileValue(user?.address),
     state: '',
     lga: '',
+    fulfillmentType: 'delivery',
   });
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState({});
-  const [locations, setLocations] = useState([]);
-  const [deliveryFee, setDeliveryFee] = useState(null);
+  const { locations, pickupAddress, deliveryFee } = useDeliveryOptions(form.fulfillmentType, form.state, form.lga);
 
   const subtotal = cart.reduce((acc, item) => acc + (item.discountPrice > 0 ? item.discountPrice : item.price || 0) * item.quantity, 0);
   const shipping = deliveryFee ?? 0;
   const total = subtotal + shipping;
-
-  useEffect(() => {
-    api.get('/delivery-locations').then(({ data }) => setLocations(data.locations || [])).catch(() => toast.error('Unable to load delivery locations'));
-  }, []);
-
-  useEffect(() => {
-    if (!form.state || !form.lga) return setDeliveryFee(null);
-    api.get('/delivery-fee', { params: { state: form.state, lga: form.lga } })
-      .then(({ data }) => setDeliveryFee(data.deliveryFee))
-      .catch(() => { setDeliveryFee(null); toast.error('Unable to calculate delivery fee'); });
-  }, [form.state, form.lga]);
 
   const validateField = (fieldName) => {
     let error = '';
@@ -56,12 +46,14 @@ const Checkout = () => {
         else if (form.customerPhone.trim().length < 10) error = 'Phone number must be at least 10 digits';
         break;
       case 'shippingAddress':
-        if (!form.shippingAddress.trim()) error = 'Shipping address is required';
-        else if (form.shippingAddress.trim().length < 5) error = 'Shipping address must be at least 5 characters';
+        if (form.fulfillmentType === 'delivery') {
+          if (!form.shippingAddress.trim()) error = 'Shipping address is required';
+          else if (form.shippingAddress.trim().length < 5) error = 'Shipping address must be at least 5 characters';
+        }
         break;
       case 'state':
       case 'lga':
-        if (!form[fieldName]) error = `${fieldName === 'lga' ? 'LGA' : 'State'} is required`;
+        if (form.fulfillmentType === 'delivery' && !form[fieldName]) error = `${fieldName === 'lga' ? 'LGA' : 'State'} is required`;
         break;
       default:
         break;
@@ -71,7 +63,8 @@ const Checkout = () => {
   };
 
   const validateForm = () => {
-    const fields = ['customerName', 'customerEmail', 'customerPhone', 'shippingAddress', 'state', 'lga'];
+    const fields = ['customerName', 'customerEmail', 'customerPhone'];
+    if (form.fulfillmentType === 'delivery') fields.push('shippingAddress', 'state', 'lga');
     let isValid = true;
     fields.forEach((field) => {
       if (!validateField(field)) isValid = false;
@@ -81,7 +74,8 @@ const Checkout = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: value, ...(name === 'state' ? { lga: '' } : {}) }));
+    setFormErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e) => {
@@ -96,8 +90,12 @@ const Checkout = () => {
 
     setLoading(true);
     try {
-      if (deliveryFee === null) {
+      if (form.fulfillmentType === 'delivery' && deliveryFee === null) {
         toast.error('Select your state and LGA to calculate delivery');
+        return;
+      }
+      if (form.fulfillmentType === 'pickup' && !pickupAddress) {
+        toast.error('Store pickup location is unavailable. Please try again.');
         return;
       }
       const items = cart.map((item) => ({
@@ -110,8 +108,11 @@ const Checkout = () => {
         email: form.customerEmail,
         customerName: form.customerName,
         customerPhone: form.customerPhone,
+        fulfillmentType: form.fulfillmentType,
         items,
-        address: { line1: form.shippingAddress, state: form.state, lga: form.lga },
+        ...(form.fulfillmentType === 'delivery' && {
+          address: { line1: form.shippingAddress, state: form.state, lga: form.lga },
+        }),
       });
       if (!data.data?.authorization_url) throw new Error('Paystack did not return a checkout link');
       window.location.assign(data.data.authorization_url);
@@ -176,12 +177,29 @@ const Checkout = () => {
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
                   <h2 className="text-xl font-bold text-slate-900 mb-6">Contact Information</h2>
+                  <h3 className="mb-3 text-sm font-bold text-slate-700">How would you like to receive your order?</h3>
+                  <div className="mb-6 grid gap-4 sm:grid-cols-2">
+                    <label className={`flex cursor-pointer gap-3 rounded-2xl border p-4 ${form.fulfillmentType === 'delivery' ? 'border-sky-400 bg-sky-50' : 'border-slate-200'}`}>
+                      <input type="radio" name="fulfillmentType" value="delivery" checked={form.fulfillmentType === 'delivery'} onChange={handleChange} className="mt-1 accent-sky-500" />
+                      <span><span className="block font-bold text-slate-800">Deliver to me</span><span className="mt-1 block text-xs text-slate-500">Delivery fee is based on your location.</span></span>
+                    </label>
+                    <label className={`flex cursor-pointer gap-3 rounded-2xl border p-4 ${form.fulfillmentType === 'pickup' ? 'border-sky-400 bg-sky-50' : 'border-slate-200'}`}>
+                      <input type="radio" name="fulfillmentType" value="pickup" checked={form.fulfillmentType === 'pickup'} onChange={handleChange} className="mt-1 accent-sky-500" />
+                      <span><span className="block font-bold text-slate-800">Pick up from store</span><span className="mt-1 block text-xs text-slate-500">No delivery fee.</span></span>
+                    </label>
+                  </div>
+                  {form.fulfillmentType === 'pickup' && (
+                    <div className="mb-6 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800">
+                      <p className="font-bold">Store pickup location</p>
+                      <p className="mt-1">{pickupAddress || 'Loading store address...'}</p>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
+                    {form.fulfillmentType === 'delivery' && <div className="md:col-span-2">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label htmlFor="state" className="block text-sm font-bold text-slate-700 mb-2">State *</label>
-                          <select id="state" name="state" value={form.state} onChange={(e) => setForm((prev) => ({ ...prev, state: e.target.value, lga: '' }))} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-sky-500 outline-none font-medium text-slate-700 text-sm">
+                          <select id="state" name="state" value={form.state} onChange={handleChange} className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:border-sky-500 outline-none font-medium text-slate-700 text-sm">
                             <option value="">Select state</option>
                             {locations.map((location) => <option key={location.state} value={location.state}>{location.state}</option>)}
                           </select>
@@ -196,7 +214,7 @@ const Checkout = () => {
                           {formErrors.lga && <p className="text-red-500 text-xs font-semibold mt-1">{formErrors.lga}</p>}
                         </div>
                       </div>
-                    </div>
+                    </div>}
                     <div className="md:col-span-2">
                       <label htmlFor="customerName" className="block text-sm font-bold text-slate-700 mb-2">Full Name *</label>
                       <input
@@ -242,7 +260,7 @@ const Checkout = () => {
                       />
                       {formErrors.customerPhone && <p className="text-red-500 text-xs font-semibold mt-1">{formErrors.customerPhone}</p>}
                     </div>
-                    <div className="md:col-span-2">
+                    {form.fulfillmentType === 'delivery' && <div className="md:col-span-2">
                       <label htmlFor="shippingAddress" className="block text-sm font-bold text-slate-700 mb-2">Shipping Address *</label>
                       <textarea
                         id="shippingAddress"
@@ -256,7 +274,7 @@ const Checkout = () => {
                         className={`w-full px-4 py-3 rounded-xl bg-slate-50 border focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/5 transition-all outline-none font-medium text-slate-700 text-sm resize-none ${formErrors.shippingAddress ? 'border-red-400 focus:border-red-400' : 'border-slate-200'}`}
                       ></textarea>
                       {formErrors.shippingAddress && <p className="text-red-500 text-xs font-semibold mt-1">{formErrors.shippingAddress}</p>}
-                    </div>
+                    </div>}
                   </div>
                 </div>
 
@@ -294,9 +312,9 @@ const Checkout = () => {
                       <span className="text-white">₦{subtotal.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-slate-300 font-medium">
-                      <span>Shipping</span>
+                      <span>{form.fulfillmentType === 'pickup' ? 'Store pickup' : 'Shipping'}</span>
                       <span className={shipping === 0 ? "text-emerald-400 font-bold" : "text-white"}>
-                        {deliveryFee === null ? 'Select delivery location' : `₦${shipping.toLocaleString()}`}
+                        {form.fulfillmentType === 'pickup' ? 'Free' : deliveryFee === null ? 'Select delivery location' : `₦${shipping.toLocaleString()}`}
                       </span>
                     </div>
                     <div className="pt-4 border-t border-white/10 flex justify-between items-end">
@@ -308,10 +326,10 @@ const Checkout = () => {
                   <div className="space-y-3">
                     <button
                       type="submit"
-                      disabled={loading || deliveryFee === null}
+                      disabled={loading || (form.fulfillmentType === 'delivery' && deliveryFee === null) || (form.fulfillmentType === 'pickup' && !pickupAddress)}
                       className="w-full bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold py-4 px-6 rounded-2xl transition-all duration-300 flex items-center justify-center gap-2 group active:scale-95 disabled:opacity-60"
                     >
-                      {loading ? 'Opening Paystack...' : deliveryFee === null ? 'Enter delivery details' : (
+                      {loading ? 'Opening Paystack...' : form.fulfillmentType === 'delivery' && deliveryFee === null ? 'Enter delivery details' : (
                         <span className="flex items-center justify-center gap-2">
                           Pay with Paystack
                           <FiLock size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -325,7 +343,7 @@ const Checkout = () => {
                       <FiLock /> Card details are handled by Paystack.
                     </p>
                     <p className="flex items-center gap-2">
-                      <FiArrowLeft size={12} /> Delivery is calculated from your location.
+                      <FiTruck size={12} /> {form.fulfillmentType === 'pickup' ? 'Store pickup has no delivery fee.' : 'Delivery is calculated from your location.'}
                     </p>
                   </div>
                 </div>

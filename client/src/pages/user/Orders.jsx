@@ -76,6 +76,10 @@ const Orders = () => {
                                                 {order.items?.length > 2 && ` +${order.items.length - 2} more`}
                                             </p>
                                             <p>
+                                                <span className="font-semibold text-slate-700">Fulfillment:</span>{' '}
+                                                {order.fulfillmentType === 'pickup' ? `Store pickup — ${order.address?.line1 || ''}` : 'Delivery'}
+                                            </p>
+                                            <p>
                                                 <span className="font-semibold text-slate-700">Total:</span> ₦{Number(order.total || 0).toLocaleString()}
                                             </p>
                                             <p>
@@ -95,6 +99,7 @@ const Orders = () => {
                                     <tr>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Order</th>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Items</th>
+                                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Fulfillment</th>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Total</th>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
                                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Date</th>
@@ -103,7 +108,7 @@ const Orders = () => {
                                 <tbody className="divide-y divide-slate-50">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="5" className="px-4 py-10">
+                                            <td colSpan="6" className="px-4 py-10">
                                                 <div className="flex items-center justify-center">
                                                     <Loader text="Loading orders..." size="sm" />
                                                 </div>
@@ -111,7 +116,7 @@ const Orders = () => {
                                         </tr>
                                     ) : orders.length === 0 ? (
                                         <tr>
-                                            <td colSpan="5" className="px-4 py-10 text-center text-slate-400">
+                                            <td colSpan="6" className="px-4 py-10 text-center text-slate-400">
                                                 You have no orders yet.
                                             </td>
                                         </tr>
@@ -132,6 +137,9 @@ const Orders = () => {
                                                     {order.items?.length > 2 && (
                                                         <span className="text-xs text-slate-400">+{order.items.length - 2} more</span>
                                                     )}
+                                                </td>
+                                                <td className="px-4 py-4 text-sm text-slate-600">
+                                                    {order.fulfillmentType === 'pickup' ? `Store pickup — ${order.address?.line1 || ''}` : 'Delivery'}
                                                 </td>
                                                 <td className="px-4 py-4 font-semibold text-slate-800">₦{Number(order.total || 0).toLocaleString()}</td>
                                                 <td className="px-4 py-4">

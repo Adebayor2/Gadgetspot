@@ -167,6 +167,7 @@ const GuestTrackOrder = () => {
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Order</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Payment Reference</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Items</th>
+                        <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Fulfillment</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Total</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Status</th>
                         <th className="px-4 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Date</th>
@@ -187,6 +188,9 @@ const GuestTrackOrder = () => {
                             {order.items?.length > 2 && (
                               <span className="text-xs text-slate-400">+{order.items.length - 2} more</span>
                             )}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-slate-600">
+                            {order.fulfillmentType === 'pickup' ? `Store pickup — ${order.address?.line1 || ''}` : 'Delivery'}
                           </td>
                           <td className="px-4 py-4 font-semibold text-slate-800">₦{Number(order.total || 0).toLocaleString()}</td>
                           <td className="px-4 py-4">
@@ -231,6 +235,10 @@ const OrderCardMobile = ({ order }) => (
           ))}
           {order.items?.length > 2 && ` +${order.items.length - 2} more`}
         </p>
+          <p>
+            <span className="font-semibold text-slate-700">Fulfillment:</span>{' '}
+            {order.fulfillmentType === 'pickup' ? `Store pickup — ${order.address?.line1 || ''}` : 'Delivery'}
+          </p>
         <p>
           <span className="font-semibold text-slate-700">Total:</span> ₦{Number(order.total || 0).toLocaleString()}
         </p>
