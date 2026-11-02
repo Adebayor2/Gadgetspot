@@ -33,6 +33,12 @@ const orderSchema = new mongoose.Schema(
       required:true,
     },
     shippingAddress: { type: String },
+    fulfillmentType: {
+      type: String,
+      enum: ["delivery", "pickup"],
+      default: "delivery",
+      required: true,
+    },
     items: [orderItemSchema],
     subtotal: { type: Number },
     shipping: { type: Number },
@@ -40,8 +46,8 @@ const orderSchema = new mongoose.Schema(
     deliveryFee: { type: Number, required: true, min: 0 },
     address: {
       line1: { type: String, required: true },
-      state: { type: String, required: true },
-      lga: { type: String, required: true },
+      state: { type: String, default: "" },
+      lga: { type: String, default: "" },
     },
     amountPaid: { type: Number, required: true, min: 0 },
     reference: { type: String, required: true, unique: true, index: true },

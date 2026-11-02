@@ -19,6 +19,7 @@ GadgetSpot allows users to:
 Admins can:
 
 - Manage products, categories, and inventory
+- Manage the global delivery fee, per-state rates, and LGA-specific overrides
 - Review customer orders and revenue data
 - Manage users and platform settings
 - View performance metrics from the admin dashboard
@@ -79,6 +80,8 @@ Gadgetspot/
 - Product browsing and detail pages
 - Wishlist and guest favourites support
 - Cart and checkout flows for signed-in and guest shoppers
+- Guest checkout with an option to sign in and return to checkout
+- Delivery or store pickup at checkout, with pickup exempt from delivery fees
 - Order tracking and payment callback support
 - Account registration, login, email verification, and password reset
 - Responsive design for desktop and mobile layouts
@@ -194,6 +197,10 @@ This app is structured for deployment as two separate services:
 
 Make sure to configure your production environment variables for both the client and server, and set the correct API base URL and CORS origins.
 
+### Delivery fees and pickup
+
+Admins can manage delivery charges from **Admin → Delivery Fees**. The global default applies unless a state or LGA override is configured. Existing rates are copied into the database the first time delivery settings are read, so they can be managed from the admin panel without changing server code. Store pickup uses the address shown on the Contact page and has no delivery charge.
+
 ## License
 
 This project is currently distributed for educational and portfolio use unless otherwise specified by the project owner.
@@ -205,4 +212,3 @@ Contributions are welcome. If you want to improve the platform, please open an i
 ## Contact
 
 For business, partnership, or support inquiries, use the contact details available in the storefront or the project’s configured support email.
-
