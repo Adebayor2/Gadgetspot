@@ -12,8 +12,16 @@
     <loc>https://gadgetspot.com.ng/products</loc>
     <lastmod>2026-11-19</lastmod>
   </url>
-   <url>
+  <url>
     <loc>https://gadgetspot.com.ng/contact</loc>
+    <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://gadgetspot.com.ng/privacy-policy</loc>
+    <lastmod>2026-11-19</lastmod>
+  </url>
+  <url>
+    <loc>https://gadgetspot.com.ng/terms</loc>
     <lastmod>2026-11-19</lastmod>
   </url>
 </urlset>

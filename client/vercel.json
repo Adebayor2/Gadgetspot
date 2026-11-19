@@ -1,5 +1,20 @@
 {
-    "rewrites":[
+    "headers": [
+        {
+            "source": "/sitemap.xml",
+            "headers": [
+                {
+                    "key": "Content-Type",
+                    "value": "application/xml"
+                },
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=0, must-revalidate"
+                }
+            ]
+        }
+    ],
+    "rewrites": [
         {     "source": "/__/auth/:path*",
             "destination": "https://gadgetspot-973b2.firebaseapp.com/__/auth/:path*"},
         {
@@ -7,8 +22,4 @@
             "destination": "/index.html"
         }
     ]
-
-
-
-    
 }
